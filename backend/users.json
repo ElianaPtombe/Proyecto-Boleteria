@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Alix Eliana Perafan Tombe",
+    "email": "alixperafan@gmail.com",
+    "pass": "alix@12",
+    "bio": "rostro_user_123"
+  },
+  {
+    "name": "David Agredo",
+    "email": "davidA@gmail.com",
+    "pass": "agredo123",
+    "bio": "agredo_25"
+  },
+  {
+    "name": "admin",
+    "email": "admin@ticketchain.com",
+    "pass": "1234",
+    "bio": "admin"
+  },
+  {
+    "name": "David Agredo",
+    "email": "davida@gmail.com",
+    "pass": "agredo123",
+    "bio": "rostro_user_124"
+  }
+]
