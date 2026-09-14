@@ -4,81 +4,94 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TicketChain — Entradas para tus eventos</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg:#0b0b14;
-    --surface:#14141f;
-    --surface-2:#1b1b29;
-    --border:#2a2a3c;
-    --text:#eceaf2;
-    --text-muted:#9997ab;
-    --gold:#f0b429;
-    --gold-dim:rgba(240,180,41,.14);
-    --violet:#8f7cf5;
-    --violet-dim:rgba(143,124,245,.14);
-    --green:#3ecf8e;
-    --red:#f2685f;
+  :root {
+    --bg: #0b0b14;
+    --surface: #14141f;
+    --surface-2: #1b1b29;
+    --border: #2a2a3c;
+    --text: #eceaf2;
+    --text-muted: #9997ab;
+    --gold: #f0b429;
+    --gold-dim: rgba(240,180,41,.14);
+    --violet: #8f7cf5;
+    --violet-dim: rgba(143,124,245,.14);
+    --green: #3ecf8e;
+    --red: #f2685f;
   }
-  *{box-sizing:border-box}
-  body{
-    background:
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background-color: var(--bg);
+    background-image: 
       radial-gradient(1100px 500px at 85% -10%, rgba(143,124,245,.14), transparent 60%),
-      radial-gradient(900px 500px at 10% 0%, rgba(240,180,41,.10), transparent 55%),
-      var(--bg);
-    color:var(--text);
-    font-family:'Inter',ui-sans-serif,system-ui,sans-serif;
+      radial-gradient(900px 500px at 10% 0%, rgba(240,180,41,.10), transparent 55%);
+    color: var(--text);
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    min-height: 100vh;
   }
-  .font-display{ font-family:'Fraunces', Georgia, serif; }
-  .card{ background:var(--surface); border:1px solid var(--border); border-radius:14px; }
-  .card-soft{ background:var(--surface-2); border:1px solid var(--border); border-radius:10px; }
-  .btn-gold{ background:var(--gold); color:#1a1204; }
-  .btn-gold:hover{ background:#ffc94a; }
-  .btn-ghost{ background:transparent; border:1px solid var(--border); color:var(--text); }
-  .btn-ghost:hover{ background:var(--surface-2); }
-  .text-muted{ color:var(--text-muted); }
-  .accent-gold{ color:var(--gold); }
-  .accent-violet{ color:var(--violet); }
-  .accent-green{ color:var(--green); }
-  .accent-red{ color:var(--red); }
-  /* Ticket stub: perforated divider between info and CTA */
-  .ticket{
-    position:relative;
-    display:grid;
-    grid-template-columns:1fr auto;
-    align-items:center;
-    background:var(--surface-2);
-    border:1px solid var(--border);
-    border-radius:12px;
-    overflow:hidden;
+  .font-display { font-family: 'Fraunces', Georgia, serif; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
+  .card-soft { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; }
+  .btn-gold { background: var(--gold); color: #1a1204; font-weight: 600; cursor: pointer; }
+  .btn-gold:hover { background: #ffc94a; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); cursor: pointer; }
+  .btn-ghost:hover { background: var(--surface-2); }
+  .text-muted { color: var(--text-muted); }
+  .accent-gold { color: var(--gold); }
+  .accent-violet { color: var(--violet); }
+  .accent-green { color: var(--green); }
+  .accent-red { color: var(--red); }
+  
+  /* Ticket layout de alta fidelidad */
+  .ticket {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
   }
-  .ticket .stub{
-    border-left:1px dashed var(--border);
-    display:flex; align-items:center; justify-content:center;
+  .ticket-content {
+    padding: 1.25rem;
+    flex: 1;
   }
-  .ticket .stub::before,.ticket .stub::after{
-    content:"";
-    position:absolute;
-    width:16px;height:16px;
-    background:var(--bg);
-    border-radius:50%;
+  .ticket-stub {
+    width: 130px;
+    height: 100%;
+    min-height: 110px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-left: 2px dashed var(--border);
+    background: rgba(0,0,0,0.15);
+    position: relative;
   }
-  .ticket .stub::before{ top:-8px; right:calc(var(--stub-w,104px) - 8px); }
-  .ticket .stub::after{ bottom:-8px; right:calc(var(--stub-w,104px) - 8px); }
-  .modal-backdrop{ background:rgba(6,6,12,.7); backdrop-filter:blur(3px); }
-  ::-webkit-scrollbar{ width:8px; height:8px; }
-  ::-webkit-scrollbar-thumb{ background:var(--border); border-radius:8px; }
-  .fade-in{ animation:fadeIn .18s ease-out; }
-  @keyframes fadeIn{ from{opacity:0; transform:translateY(4px)} to{opacity:1; transform:translateY(0)} }
+  .ticket-stub::before {
+    content: ""; position: absolute; width: 20px; height: 20px;
+    background: var(--bg); border-radius: 50%; left: -11px; top: -11px;
+    border: 1px solid var(--border);
+  }
+  .ticket-stub::after {
+    content: ""; position: absolute; width: 20px; height: 20px;
+    background: var(--bg); border-radius: 50%; left: -11px; bottom: -11px;
+    border: 1px solid var(--border);
+  }
+  
+  .modal-backdrop { background: rgba(6,6,12,.8); backdrop-filter: blur(4px); }
+  .fade-in { animation: fadeIn .18s ease-out; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 </head>
-<body class="min-h-screen">
+<body>
 
   <!-- NAVBAR -->
-  <nav class="sticky top-0 z-40 border-b" style="border-color:var(--border); background:rgba(11,11,20,.85); backdrop-filter:blur(8px);">
+  <nav class="sticky top-0 z-40 border-b" style="border-color:var(--border); background:rgba(11,11,20,.9); backdrop-filter:blur(10px);">
     <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
       <div class="flex items-center gap-2">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" class="accent-gold">
@@ -88,43 +101,66 @@
         <span class="font-display text-xl font-semibold tracking-tight">TicketChain</span>
       </div>
 
-      <div class="hidden md:flex items-center gap-7 text-sm text-muted">
+      <div class="hidden md:flex items-center space-x-6 text-sm text-muted">
         <a href="#eventos" class="hover:text-white transition">Eventos</a>
+        <a href="#blockchain-section" class="hover:text-white transition">Blockchain</a>
         <a href="#dashboard" id="nav-link-panel" class="hover:text-white transition hidden">Mi panel</a>
       </div>
 
       <div id="nav-auth-area" class="flex items-center gap-3">
-        <button onclick="openLoginModal()" id="nav-login-btn" class="btn-gold text-sm font-semibold px-4 py-2 rounded-lg transition">
+        <button onclick="openLoginModal()" id="nav-login-btn" class="btn-gold text-sm px-4 py-2 rounded-lg transition">
           Iniciar sesión
         </button>
       </div>
     </div>
   </nav>
 
-  <div class="max-w-6xl mx-auto px-6 py-10 space-y-14">
+  <div class="max-w-6xl mx-auto px-6 py-10 space-y-12">
 
     <!-- HERO -->
     <section class="max-w-2xl">
       <p class="text-xs uppercase tracking-widest text-muted mb-3">Boletería digital</p>
       <h1 class="font-display text-4xl md:text-5xl font-semibold leading-tight">
-        Compra,vende y gestiona tus entradas para eventos en vivo
+        Compra, vende y gestiona tus entradas para eventos en vivo
       </h1>
       <p class="text-muted mt-4 text-[15px] leading-relaxed">
         Explora los próximos eventos, compra tu entrada y guárdala en tu cuenta.
-        Si ya no puedes asistir, revéndela dentro de la plataforma con total seguridad
+        Si ya no puedes asistir, revéndela dentro de la plataforma con total seguridad.
       </p>
     </section>
 
-    <!-- EVENTOS (público) -->
+    <!-- EVENTOS (Público) -->
     <section id="eventos">
       <div class="flex items-baseline justify-between mb-5">
         <h2 class="font-display text-2xl font-semibold">Eventos disponibles</h2>
         <span class="text-xs text-muted" id="eventos-count"></span>
       </div>
-      <div id="event-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+      <div id="event-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
     </section>
 
-    <!-- PANEL DE USUARIO (solo logueado) -->
+    <!-- BLOCKCHAIN EXPLORER -->
+    <section id="blockchain-section" class="card p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="font-display text-xl font-semibold">Blockchain Explorer</h2>
+          <p class="text-xs text-muted">Audita la integridad y transparencia de la cadena de bloques.</p>
+        </div>
+        <button onclick="toggleBlockchainView()" class="btn-ghost text-sm px-4 py-2 rounded-lg flex items-center gap-2">
+          <span>Ver cadena</span>
+          <svg id="bc-icon" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </button>
+      </div>
+
+      <div id="blockchain-container" class="hidden mt-6 space-y-4 pt-4 border-t border-[var(--border)]">
+        <div class="flex justify-between items-center text-xs text-muted mb-2">
+          <span id="bc-status-summary">Cargando datos...</span>
+          <button onclick="renderBlockchain()" class="text-xs text-[var(--gold)] hover:underline">🔄 Actualizar</button>
+        </div>
+        <div id="blockchain-blocks" class="space-y-4"></div>
+      </div>
+    </section>
+
+    <!-- PANEL DE USUARIO -->
     <section id="dashboard" class="hidden space-y-6">
       <div class="card p-5 flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -134,6 +170,35 @@
         <button onclick="logout()" class="btn-ghost text-sm px-4 py-2 rounded-lg transition">Cerrar sesión</button>
       </div>
 
+      <!-- SECCIÓN ADMIN -->
+      <div id="admin-panel" class="hidden space-y-6">
+        <div class="card p-6">
+          <h3 class="font-display text-lg font-semibold accent-gold mb-1">Crear Nuevo Evento</h3>
+          <p class="text-xs text-muted mb-4">Publica un evento para que los usuarios puedan comprar entradas.</p>
+          <form onsubmit="crearEvento(event)" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <input type="text" id="ev-nombre" placeholder="Nombre del evento" required class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-2.5 text-sm">
+            <input type="text" id="ev-fecha" placeholder="Fecha (ej. 15 Oct, 2026)" required class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-2.5 text-sm">
+            <input type="text" id="ev-lugar" placeholder="Lugar / Estadio" required class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-2.5 text-sm">
+            <input type="number" id="ev-precio" placeholder="Precio (COP)" required min="0" class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-2.5 text-sm">
+            <input type="number" id="ev-aforo" placeholder="Aforo total" required min="1" class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-2.5 text-sm">
+            <button type="submit" class="btn-gold text-sm py-2.5 rounded-lg transition">Publicar Evento</button>
+          </form>
+        </div>
+
+        <div class="card p-6">
+          <h3 class="font-display text-lg font-semibold accent-gold mb-1">Validación de acceso en puerta</h3>
+          <p class="text-xs text-muted mb-4">Verifica una entrada al ingreso del evento.</p>
+          <form onsubmit="validarTicket(event)" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <input type="text" id="val-hash" placeholder="Código de la entrada" required class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-2.5 text-sm">
+            <input type="email" id="val-email" placeholder="Correo del asistente" required class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-2.5 text-sm">
+            <input type="text" id="val-bio" placeholder="Verificación biométrica" required class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-2.5 text-sm">
+            <button type="submit" class="btn-gold md:col-span-3 text-sm py-2.5 rounded-lg transition">Verificar entrada</button>
+          </form>
+          <div id="val-result" class="mt-4"></div>
+        </div>
+      </div>
+
+      <!-- TICKETS Y MARKETPLACE -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="card p-6">
           <h3 class="font-display text-lg font-semibold accent-green mb-4">Mis entradas</h3>
@@ -145,34 +210,17 @@
           <div id="market-list" class="space-y-3"></div>
         </div>
       </div>
-
-      <div id="admin-panel" class="card p-6 hidden">
-        <h3 class="font-display text-lg font-semibold accent-gold mb-1">Validación de acceso en puerta</h3>
-        <p class="text-xs text-muted mb-4">Verifica una entrada al ingreso del evento. <span class="accent-gold">Solo administradores.</span></p>
-        <form onsubmit="validarTicket(event)" class="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <input type="text" id="val-hash" placeholder="Código de la entrada" required
-                 class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-2.5 text-sm">
-          <input type="email" id="val-email" placeholder="Correo del asistente" required
-                 class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-2.5 text-sm">
-          <input type="text" id="val-bio" placeholder="Verificación biométrica" required
-                 class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-2.5 text-sm">
-          <button type="submit" class="btn-gold md:col-span-3 text-sm font-semibold py-2.5 rounded-lg transition">
-            Verificar entrada
-          </button>
-        </form>
-        <div id="val-result" class="mt-4"></div>
-      </div>
     </section>
 
-    <footer class="text-center text-xs text-muted py-8">
-      TicketChain · Plataforma de boletería para eventos en vivo
+    <footer class="text-center text-xs text-muted py-8 border-t border-[var(--border)]">
+      TicketChain · Plataforma de boletería descentralizada
     </footer>
   </div>
 
-  <!-- MODAL LOGIN / REGISTRO -->
+  <!-- MODAL LOGIN -->
   <div id="login-modal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4" onclick="closeLoginModalOnBackdrop(event)">
     <div class="card w-full max-w-sm p-6 fade-in relative" onclick="event.stopPropagation()">
-      <button onclick="closeLoginModal()" class="absolute top-4 right-4 text-muted hover:text-white transition" aria-label="Cerrar">✕</button>
+      <button onclick="closeLoginModal()" class="absolute top-4 right-4 text-muted hover:text-white transition">✕</button>
 
       <h2 id="auth-title" class="font-display text-xl font-semibold mb-1">Iniciar sesión</h2>
       <p class="text-xs text-muted mb-5">Accede para comprar y gestionar tus entradas.</p>
@@ -194,7 +242,7 @@
           <label class="text-xs text-muted">Verificación biométrica</label>
           <input type="text" id="input-bio" placeholder="ej. rostro_usuario_123" class="w-full bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-2.5 text-sm mt-1">
         </div>
-        <button type="submit" id="btn-submit" class="w-full btn-gold font-semibold py-2.5 rounded-lg transition">Ingresar</button>
+        <button type="submit" id="btn-submit" class="w-full btn-gold py-2.5 rounded-lg transition">Ingresar</button>
       </form>
       <button onclick="toggleAuthMode()" id="btn-toggle" class="w-full text-xs text-muted mt-4 hover:text-white transition text-center block">
         ¿No tienes cuenta? Regístrate
@@ -212,17 +260,9 @@
       return Math.round(valor).toLocaleString('es-CO');
     }
 
-    // ---------- MODAL ----------
-    function openLoginModal() {
-      document.getElementById('login-modal').classList.remove('hidden');
-    }
-    function closeLoginModal() {
-      document.getElementById('login-modal').classList.add('hidden');
-      pendingPurchaseEventId = null;
-    }
-    function closeLoginModalOnBackdrop(e) {
-      if (e.target.id === 'login-modal') closeLoginModal();
-    }
+    function openLoginModal() { document.getElementById('login-modal').classList.remove('hidden'); }
+    function closeLoginModal() { document.getElementById('login-modal').classList.add('hidden'); pendingPurchaseEventId = null; }
+    function closeLoginModalOnBackdrop(e) { if (e.target.id === 'login-modal') closeLoginModal(); }
 
     function toggleAuthMode() {
       isRegister = !isRegister;
@@ -299,61 +339,130 @@
       refresh();
     }
 
-    // ---------- DATA ----------
-    async function refresh() {
-      const resEvents = await fetch(`${API}/eventos`);
-      const eventos = await resEvents.json();
+    function toggleBlockchainView() {
+      const container = document.getElementById('blockchain-container');
+      const icon = document.getElementById('bc-icon');
+      const isHidden = container.classList.contains('hidden');
 
-      document.getElementById('eventos-count').textContent = `${eventos.length} evento${eventos.length === 1 ? '' : 's'}`;
+      if (isHidden) {
+        container.classList.remove('hidden');
+        icon.style.transform = 'rotate(180deg)';
+        renderBlockchain();
+      } else {
+        container.classList.add('hidden');
+        icon.style.transform = 'rotate(0deg)';
+      }
+    }
 
-      // Eventos (público, visible con o sin sesión)
-      document.getElementById('event-list').innerHTML = eventos.map(e => `
-        <div class="ticket" style="--stub-w:104px">
-          <div class="p-4">
-            <p class="font-display font-semibold">${e.nombre}</p>
-            <p class="text-xs text-muted mt-1">${e.fecha} · ${e.lugar}</p>
-            <p class="text-sm accent-gold font-semibold mt-2">$${formatCOP(e.precio)} COP</p>
+    async function renderBlockchain() {
+      try {
+        const res = await fetch(`${API}/chain-status`);
+        const status = await res.json();
+
+        document.getElementById('bc-status-summary').textContent = `Total Bloques: ${status.length} | Estado: ${status.valid ? '✅ VÁLIDA' : '❌ CORROMPIDA'}`;
+
+        const blocksContainer = document.getElementById('blockchain-blocks');
+        blocksContainer.innerHTML = status.chain.map(block => `
+          <div class="card-soft p-4 text-xs font-mono space-y-2 border-l-4 ${block.index === 0 ? 'border-l-[var(--gold)]' : 'border-l-[var(--violet)]'}">
+            <div class="flex justify-between items-center text-muted border-b border-[var(--border)] pb-2">
+              <span class="font-bold text-white">Bloque #${block.index}</span>
+              <span>${new Date(block.timestamp).toLocaleString('es-CO')}</span>
+            </div>
+            <div><span class="text-muted">Hash:</span> <span class="accent-gold break-all">${block.hash}</span></div>
+            <div><span class="text-muted">Hash previo:</span> <span class="break-all">${block.previousHash}</span></div>
+            <div><span class="text-muted">Nonce:</span> <span>${block.nonce}</span></div>
+            <div>
+              <span class="text-muted">Transacciones (${block.transactions.length}):</span>
+              <pre class="mt-1 p-2 bg-[var(--bg)] rounded border border-[var(--border)] text-[11px] overflow-x-auto text-muted">${JSON.stringify(block.transactions, null, 2)}</pre>
+            </div>
           </div>
-          <div class="stub w-[104px] h-full">
-            <button onclick="comprarTicket(${e.id})" class="btn-gold text-xs font-semibold px-3 py-2 rounded-lg transition">
+        `).join('');
+      } catch (err) {
+        document.getElementById('bc-status-summary').textContent = 'Error al conectar con el servidor Backend';
+      }
+    }
+
+    async function crearEvento(e) {
+      e.preventDefault();
+      const nombre = document.getElementById('ev-nombre').value;
+      const fecha = document.getElementById('ev-fecha').value;
+      const lugar = document.getElementById('ev-lugar').value;
+      const precio = parseFloat(document.getElementById('ev-precio').value);
+      const aforo = parseInt(document.getElementById('ev-aforo').value);
+
+      const res = await fetch(`${API}/eventos`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ nombre, fecha, lugar, precio, aforo, adminEmail: currentUser.email })
+      });
+
+      const data = await res.json();
+      alert(res.ok ? 'Evento publicado con éxito' : data.error);
+      if (res.ok) {
+        e.target.reset();
+        refresh();
+      }
+    }
+
+    async function refresh() {
+      try {
+        const resEvents = await fetch(`${API}/eventos`);
+        const eventos = await resEvents.json();
+
+        document.getElementById('eventos-count').textContent = `${eventos.length} evento${eventos.length === 1 ? '' : 's'}`;
+
+        document.getElementById('event-list').innerHTML = eventos.map(e => `
+          <div class="ticket">
+            <div class="ticket-content">
+              <p class="font-display font-semibold text-lg">${e.nombre}</p>
+              <p class="text-xs text-muted mt-1">${e.fecha} · ${e.lugar}</p>
+              <p class="text-sm accent-gold font-semibold mt-2">$${formatCOP(e.precio)} COP</p>
+            </div>
+            <div class="ticket-stub">
+              <button onclick="comprarTicket(${e.id})" class="btn-gold text-xs font-semibold px-4 py-2 rounded-lg transition">
+                Comprar
+              </button>
+            </div>
+          </div>
+        `).join('');
+
+        if (!document.getElementById('blockchain-container').classList.contains('hidden')) {
+          renderBlockchain();
+        }
+
+        if (!currentUser) return;
+
+        const resStatus = await fetch(`${API}/chain-status`);
+        const status = await resStatus.json();
+
+        const myTickets = status.tickets.filter(t => t.propietario === currentUser.email && t.estado === 'VALIDO' && !t.enVenta);
+        document.getElementById('my-tickets-list').innerHTML = myTickets.length ? myTickets.map(t => `
+          <div class="card-soft p-3 space-y-2">
+            <p class="font-semibold text-sm accent-green">${t.evento}</p>
+            <p class="text-[11px] font-mono break-all text-muted">Código: ${t.ticketId}</p>
+            <div class="flex gap-2">
+              <button onclick="transferirTicket('${t.ticketId}')" class="btn-ghost text-xs px-2.5 py-1.5 rounded-lg">Transferir</button>
+              <button onclick="revenderTicket('${t.ticketId}')" class="text-xs px-2.5 py-1.5 rounded-lg" style="background:var(--gold-dim); color:var(--gold); border:1px solid rgba(240,180,41,.3)">Revender</button>
+            </div>
+          </div>
+        `).join('') : '<p class="text-xs text-muted">No tienes entradas activas todavía.</p>';
+
+        const marketTickets = status.tickets.filter(t => t.enVenta && t.estado === 'VALIDO' && t.propietario !== currentUser.email);
+        document.getElementById('market-list').innerHTML = marketTickets.length ? marketTickets.map(t => `
+          <div class="card-soft p-3 flex justify-between items-center gap-3">
+            <div>
+              <p class="font-semibold text-sm accent-violet">${t.evento}</p>
+              <p class="text-xs text-muted">Vendedor: ${t.propietario}</p>
+              <p class="text-sm font-semibold mt-1">$${formatCOP(t.precio)} COP</p>
+            </div>
+            <button onclick="comprarReventa('${t.ticketId}')" class="text-xs font-semibold px-3 py-2 rounded-lg" style="background:var(--violet-dim); color:var(--violet); border:1px solid rgba(143,124,245,.35)">
               Comprar
             </button>
           </div>
-        </div>
-      `).join('');
-
-      if (!currentUser) return;
-
-      const resStatus = await fetch(`${API}/chain-status`);
-      const status = await resStatus.json();
-
-      // Mis entradas
-      const myTickets = status.tickets.filter(t => t.propietario === currentUser.email && t.estado === 'VALIDO' && !t.enVenta);
-      document.getElementById('my-tickets-list').innerHTML = myTickets.length ? myTickets.map(t => `
-        <div class="card-soft p-3 space-y-2">
-          <p class="font-semibold text-sm accent-green">${t.evento}</p>
-          <p class="text-[11px] font-mono break-all text-muted">Código: ${t.ticketId}</p>
-          <div class="flex gap-2">
-            <button onclick="transferirTicket('${t.ticketId}')" class="btn-ghost text-xs px-2.5 py-1.5 rounded-lg">Transferir</button>
-            <button onclick="revenderTicket('${t.ticketId}')" class="text-xs px-2.5 py-1.5 rounded-lg" style="background:var(--gold-dim); color:var(--gold); border:1px solid rgba(240,180,41,.3)">Revender</button>
-          </div>
-        </div>
-      `).join('') : '<p class="text-xs text-muted">No tienes entradas activas todavía.</p>';
-
-      // Marketplace
-      const marketTickets = status.tickets.filter(t => t.enVenta && t.estado === 'VALIDO' && t.propietario !== currentUser.email);
-      document.getElementById('market-list').innerHTML = marketTickets.length ? marketTickets.map(t => `
-        <div class="card-soft p-3 flex justify-between items-center gap-3">
-          <div>
-            <p class="font-semibold text-sm accent-violet">${t.evento}</p>
-            <p class="text-xs text-muted">Vendedor: ${t.propietario}</p>
-            <p class="text-sm font-semibold mt-1">$${formatCOP(t.precio)} COP</p>
-          </div>
-          <button onclick="comprarReventa('${t.ticketId}')" class="text-xs font-semibold px-3 py-2 rounded-lg" style="background:var(--violet-dim); color:var(--violet); border:1px solid rgba(143,124,245,.35)">
-            Comprar
-          </button>
-        </div>
-      `).join('') : '<p class="text-xs text-muted">No hay entradas en reventa por ahora.</p>';
+        `).join('') : '<p class="text-xs text-muted">No hay entradas en reventa por ahora.</p>';
+      } catch (e) {
+        console.error("Error cargando los datos del backend:", e);
+      }
     }
 
     async function comprarTicket(eventoId) {
@@ -439,7 +548,7 @@
       const data = await res.json();
 
       const resDiv = document.getElementById('val-result');
-      resDiv.className = `p-3 rounded-lg text-xs font-semibold ${data.access ? '' : ''}`;
+      resDiv.className = `p-3 rounded-lg text-xs font-semibold`;
       resDiv.style.background = data.access ? 'rgba(62,207,142,.12)' : 'rgba(242,104,95,.12)';
       resDiv.style.color = data.access ? 'var(--green)' : 'var(--red)';
       resDiv.style.border = `1px solid ${data.access ? 'rgba(62,207,142,.3)' : 'rgba(242,104,95,.3)'}`;
