@@ -1,258 +1,241 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TicketChain — Entradas para tus eventos</title>
-<link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #0b0b14;
-    --surface: #14141f;
-    --surface-2: #1b1b29;
-    --border: #2a2a3c;
-    --text: #eceaf2;
-    --text-muted: #9997ab;
-    --gold: #f0b429;
-    --gold-dim: rgba(240,180,41,.14);
-    --violet: #8f7cf5;
-    --violet-dim: rgba(143,124,245,.14);
-    --green: #3ecf8e;
-    --red: #f2685f;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background-color: var(--bg);
-    background-image: 
-      radial-gradient(1100px 500px at 85% -10%, rgba(143,124,245,.14), transparent 60%),
-      radial-gradient(900px 500px at 10% 0%, rgba(240,180,41,.10), transparent 55%);
-    color: var(--text);
-    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
-    min-height: 100vh;
-  }
-  .font-display { font-family: 'Fraunces', Georgia, serif; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
-  .card-soft { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; }
-  .btn-gold { background: var(--gold); color: #1a1204; font-weight: 600; cursor: pointer; }
-  .btn-gold:hover { background: #ffc94a; }
-  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); cursor: pointer; }
-  .btn-ghost:hover { background: var(--surface-2); }
-  .text-muted { color: var(--text-muted); }
-  .accent-gold { color: var(--gold); }
-  .accent-violet { color: var(--violet); }
-  .accent-green { color: var(--green); }
-  .accent-red { color: var(--red); }
-  
-  /* Ticket layout de alta fidelidad */
-  .ticket {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    overflow: hidden;
-    position: relative;
-  }
-  .ticket-content {
-    padding: 1.25rem;
-    flex: 1;
-  }
-  .ticket-stub {
-    width: 130px;
-    height: 100%;
-    min-height: 110px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-left: 2px dashed var(--border);
-    background: rgba(0,0,0,0.15);
-    position: relative;
-  }
-  .ticket-stub::before {
-    content: ""; position: absolute; width: 20px; height: 20px;
-    background: var(--bg); border-radius: 50%; left: -11px; top: -11px;
-    border: 1px solid var(--border);
-  }
-  .ticket-stub::after {
-    content: ""; position: absolute; width: 20px; height: 20px;
-    background: var(--bg); border-radius: 50%; left: -11px; bottom: -11px;
-    border: 1px solid var(--border);
-  }
-  
-  .modal-backdrop { background: rgba(6,6,12,.8); backdrop-filter: blur(4px); }
-  .fade-in { animation: fadeIn .18s ease-out; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TicketChain — Boletería Blockchain</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #09090b;
+      --card: #121215;
+      --card-soft: #18181b;
+      --border: #27272a;
+      --gold: #f0b429;
+      --gold-dim: rgba(240, 180, 41, 0.15);
+      --violet: #8f7cf5;
+      --violet-dim: rgba(143, 124, 245, 0.15);
+      --green: #3ecf8e;
+      --red: #f2685f;
+      --muted: #a1a1aa;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: #f4f4f5;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .font-display { font-family: 'Syne', sans-serif; }
+    .bg-card { background-color: var(--card); }
+    .card-soft { background-color: var(--card-soft); border: 1px solid var(--border); border-radius: 0.75rem; }
+    .accent-gold { color: var(--gold); }
+    .accent-violet { color: var(--violet); }
+    .accent-green { color: var(--green); }
+    .text-muted { color: var(--muted); }
+
+    .btn-gold {
+      background: var(--gold);
+      color: #000;
+      font-weight: 600;
+    }
+    .btn-gold:hover { filter: brightness(1.1); }
+
+    .btn-ghost {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: #f4f4f5;
+    }
+    .btn-ghost:hover { background: rgba(255, 255, 255, 0.1); }
+
+    .ticket {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ticket::before, .ticket::after {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      background-color: var(--bg);
+      border-radius: 50%;
+      right: 110px;
+    }
+    .ticket::before { top: -8px; }
+    .ticket::after { bottom: -8px; }
+
+    .ticket-content { padding: 1.25rem; flex: 1; }
+    .ticket-stub {
+      width: 120px;
+      border-left: 2px dashed var(--border);
+      padding: 1.25rem 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
 </head>
-<body>
+<body class="min-h-screen flex flex-col">
 
   <!-- NAVBAR -->
-  <nav class="sticky top-0 z-40 border-b" style="border-color:var(--border); background:rgba(11,11,20,.9); backdrop-filter:blur(10px);">
-    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" class="accent-gold">
-          <path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4V8Z" stroke="currentColor" stroke-width="1.6"/>
-          <path d="M9 6v12" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2.5 3"/>
-        </svg>
-        <span class="font-display text-xl font-semibold tracking-tight">TicketChain</span>
+  <header class="border-b border-[var(--border)] bg-card sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-[var(--gold)] text-black font-bold flex items-center justify-center font-display text-lg">T</div>
+        <span class="font-display font-bold text-xl tracking-tight">Ticket<span class="accent-gold">Chain</span></span>
       </div>
 
-      <div class="hidden md:flex items-center space-x-6 text-sm text-muted">
-        <a href="#eventos" class="hover:text-white transition">Eventos</a>
-        <a href="#blockchain-section" class="hover:text-white transition">Blockchain</a>
-        <a href="#dashboard" id="nav-link-panel" class="hover:text-white transition hidden">Mi panel</a>
-      </div>
-
-      <div id="nav-auth-area" class="flex items-center gap-3">
-        <button onclick="openLoginModal()" id="nav-login-btn" class="btn-gold text-sm px-4 py-2 rounded-lg transition">
-          Iniciar sesión
-        </button>
-      </div>
+      <nav class="flex items-center gap-4">
+        <div id="nav-link-panel" class="hidden">
+          <a href="#dashboard" class="text-sm font-medium text-muted hover:text-white transition">Mi Panel</a>
+        </div>
+        <div id="nav-auth-area">
+          <button onclick="openLoginModal()" id="nav-login-btn" class="btn-gold text-sm font-semibold px-4 py-2 rounded-lg transition">
+            Iniciar sesión
+          </button>
+        </div>
+      </nav>
     </div>
-  </nav>
+  </header>
 
-  <div class="max-w-6xl mx-auto px-6 py-10 space-y-12">
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="max-w-6xl mx-auto px-4 py-8 flex-1 w-full space-y-10">
 
-    <!-- HERO -->
-    <section class="max-w-2xl">
-      <p class="text-xs uppercase tracking-widest text-muted mb-3">Boletería digital</p>
-      <h1 class="font-display text-4xl md:text-5xl font-semibold leading-tight">
-        Compra, vende y gestiona tus entradas para eventos en vivo
-      </h1>
-      <p class="text-muted mt-4 text-[15px] leading-relaxed">
-        Explora los próximos eventos, compra tu entrada y guárdala en tu cuenta.
-        Si ya no puedes asistir, revéndela dentro de la plataforma con total seguridad.
-      </p>
+    <!-- SECCIÓN EVENTOS -->
+    <section class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="font-display font-bold text-2xl">Eventos Próximos</h2>
+        <span id="eventos-count" class="text-xs font-mono text-muted bg-[var(--card-soft)] px-3 py-1 rounded-full border border-[var(--border)]">0 eventos</span>
+      </div>
+      <div id="event-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <p class="text-xs text-muted">Cargando eventos...</p>
+      </div>
     </section>
 
-    <!-- EVENTOS (Público) -->
-    <section id="eventos">
-      <div class="flex items-baseline justify-between mb-5">
-        <h2 class="font-display text-2xl font-semibold">Eventos disponibles</h2>
-        <span class="text-xs text-muted" id="eventos-count"></span>
+    <!-- DASHBOARD USUARIO (LOGUEADO) -->
+    <section id="dashboard" class="hidden space-y-6 pt-6 border-t border-[var(--border)]">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <h2 class="font-display font-bold text-2xl">Mi Cuenta</h2>
+        <p id="user-display" class="text-xs font-mono accent-gold"></p>
       </div>
-      <div id="event-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- MIS TICKETS -->
+        <div class="card-soft p-5 space-y-4">
+          <h3 class="font-display font-bold text-lg accent-green">Mis Entradas Compradas</h3>
+          <div id="my-tickets-list" class="space-y-3">
+            <p class="text-xs text-muted">No tienes entradas activas todavía.</p>
+          </div>
+        </div>
+
+        <!-- MERCADO DE REVENTA -->
+        <div class="card-soft p-5 space-y-4">
+          <h3 class="font-display font-bold text-lg accent-violet">Mercado Secundario (Reventa)</h3>
+          <div id="market-list" class="space-y-3">
+            <p class="text-xs text-muted">No hay entradas en reventa por ahora.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PANEL ADMINISTRADOR (SOLO ADMINS) -->
+    <section id="admin-panel" class="hidden space-y-6 pt-6 border-t border-[var(--border)]">
+      <h2 class="font-display font-bold text-2xl accent-gold">Panel de Administración</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- PUBLICAR EVENTO -->
+        <form onsubmit="crearEvento(event)" class="card-soft p-5 space-y-3">
+          <h3 class="font-semibold text-sm">Crear Nuevo Evento</h3>
+          <input id="ev-nombre" type="text" placeholder="Nombre del evento" required class="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg p-2 text-xs focus:outline-none focus:border-[var(--gold)]" />
+          <input id="ev-fecha" type="text" placeholder="Fecha (ej: 25 Nov, 2026)" required class="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg p-2 text-xs focus:outline-none focus:border-[var(--gold)]" />
+          <input id="ev-lugar" type="text" placeholder="Lugar o Estadio" required class="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg p-2 text-xs focus:outline-none focus:border-[var(--gold)]" />
+          <div class="grid grid-cols-2 gap-2">
+            <input id="ev-precio" type="number" placeholder="Precio (COP)" required class="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg p-2 text-xs focus:outline-none focus:border-[var(--gold)]" />
+            <input id="ev-aforo" type="number" placeholder="Aforo máximo" required class="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg p-2 text-xs focus:outline-none focus:border-[var(--gold)]" />
+          </div>
+          <button type="submit" class="btn-gold w-full text-xs py-2 rounded-lg transition">Publicar Evento</button>
+        </form>
+
+        <!-- VALIDACIÓN DE TICKETS EN PUERTA -->
+        <form onsubmit="validarTicket(event)" class="card-soft p-5 space-y-3">
+          <h3 class="font-semibold text-sm">Validar Entrada en Puerta</h3>
+          <input id="val-hash" type="text" placeholder="Código / Hash del Ticket" required class="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg p-2 text-xs font-mono focus:outline-none focus:border-[var(--gold)]" />
+          <input id="val-email" type="email" placeholder="Correo del asistente" required class="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg p-2 text-xs focus:outline-none focus:border-[var(--gold)]" />
+          <input id="val-bio" type="text" placeholder="Documento / Verificación" class="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg p-2 text-xs focus:outline-none focus:border-[var(--gold)]" />
+          <button type="submit" class="btn-ghost w-full text-xs py-2 rounded-lg transition">Verificar Entrada</button>
+          <div id="val-result" class="hidden p-3 rounded-lg text-xs font-semibold"></div>
+        </form>
+      </div>
     </section>
 
     <!-- BLOCKCHAIN EXPLORER -->
-    <section id="blockchain-section" class="card p-6">
-      <div class="flex items-center justify-between">
-        <div>
-          <h2 class="font-display text-xl font-semibold">Blockchain Explorer</h2>
-          <p class="text-xs text-muted">Audita la integridad y transparencia de la cadena de bloques.</p>
-        </div>
-        <button onclick="toggleBlockchainView()" class="btn-ghost text-sm px-4 py-2 rounded-lg flex items-center gap-2">
-          <span>Ver cadena</span>
-          <svg id="bc-icon" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-        </button>
-      </div>
+    <section class="pt-6 border-t border-[var(--border)] space-y-4">
+      <button onclick="toggleBlockchainView()" class="w-full flex justify-between items-center card-soft p-4 hover:border-[var(--gold)] transition">
+        <span class="font-display font-bold text-base flex items-center gap-2">
+          ⛓️ Explorador de Blockchain (Ledger)
+        </span>
+        <span id="bc-icon" class="text-sm transition-transform duration-200">▼</span>
+      </button>
 
-      <div id="blockchain-container" class="hidden mt-6 space-y-4 pt-4 border-t border-[var(--border)]">
-        <div class="flex justify-between items-center text-xs text-muted mb-2">
-          <span id="bc-status-summary">Cargando datos...</span>
-          <button onclick="renderBlockchain()" class="text-xs text-[var(--gold)] hover:underline">🔄 Actualizar</button>
-        </div>
-        <div id="blockchain-blocks" class="space-y-4"></div>
+      <div id="blockchain-container" class="hidden space-y-4">
+        <p id="bc-status-summary" class="text-xs font-mono text-muted"></p>
+        <div id="blockchain-blocks" class="space-y-3"></div>
       </div>
     </section>
+  </main>
 
-    <!-- PANEL DE USUARIO -->
-    <section id="dashboard" class="hidden space-y-6">
-      <div class="card p-5 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p class="text-xs text-muted">Sesión iniciada como</p>
-          <p id="user-display" class="font-display text-lg"></p>
-        </div>
-        <button onclick="logout()" class="btn-ghost text-sm px-4 py-2 rounded-lg transition">Cerrar sesión</button>
-      </div>
-
-      <!-- SECCIÓN ADMIN -->
-      <div id="admin-panel" class="hidden space-y-6">
-        <div class="card p-6">
-          <h3 class="font-display text-lg font-semibold accent-gold mb-1">Crear Nuevo Evento</h3>
-          <p class="text-xs text-muted mb-4">Publica un evento para que los usuarios puedan comprar entradas.</p>
-          <form onsubmit="crearEvento(event)" class="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <input type="text" id="ev-nombre" placeholder="Nombre del evento" required class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-2.5 text-sm">
-            <input type="text" id="ev-fecha" placeholder="Fecha (ej. 15 Oct, 2026)" required class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-2.5 text-sm">
-            <input type="text" id="ev-lugar" placeholder="Lugar / Estadio" required class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-2.5 text-sm">
-            <input type="number" id="ev-precio" placeholder="Precio (COP)" required min="0" class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-2.5 text-sm">
-            <input type="number" id="ev-aforo" placeholder="Aforo total" required min="1" class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-2.5 text-sm">
-            <button type="submit" class="btn-gold text-sm py-2.5 rounded-lg transition">Publicar Evento</button>
-          </form>
-        </div>
-
-        <div class="card p-6">
-          <h3 class="font-display text-lg font-semibold accent-gold mb-1">Validación de acceso en puerta</h3>
-          <p class="text-xs text-muted mb-4">Verifica una entrada al ingreso del evento.</p>
-          <form onsubmit="validarTicket(event)" class="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <input type="text" id="val-hash" placeholder="Código de la entrada" required class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-2.5 text-sm">
-            <input type="email" id="val-email" placeholder="Correo del asistente" required class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-2.5 text-sm">
-            <input type="text" id="val-bio" placeholder="Verificación biométrica" required class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-2.5 text-sm">
-            <button type="submit" class="btn-gold md:col-span-3 text-sm py-2.5 rounded-lg transition">Verificar entrada</button>
-          </form>
-          <div id="val-result" class="mt-4"></div>
-        </div>
-      </div>
-
-      <!-- TICKETS Y MARKETPLACE -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="card p-6">
-          <h3 class="font-display text-lg font-semibold accent-green mb-4">Mis entradas</h3>
-          <div id="my-tickets-list" class="space-y-3"></div>
-        </div>
-
-        <div class="card p-6">
-          <h3 class="font-display text-lg font-semibold accent-violet mb-4">Marketplace de reventa</h3>
-          <div id="market-list" class="space-y-3"></div>
-        </div>
-      </div>
-    </section>
-
-    <footer class="text-center text-xs text-muted py-8 border-t border-[var(--border)]">
-      TicketChain · Plataforma de boletería descentralizada
-    </footer>
-  </div>
-
-  <!-- MODAL LOGIN -->
-  <div id="login-modal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4" onclick="closeLoginModalOnBackdrop(event)">
-    <div class="card w-full max-w-sm p-6 fade-in relative" onclick="event.stopPropagation()">
-      <button onclick="closeLoginModal()" class="absolute top-4 right-4 text-muted hover:text-white transition">✕</button>
-
-      <h2 id="auth-title" class="font-display text-xl font-semibold mb-1">Iniciar sesión</h2>
-      <p class="text-xs text-muted mb-5">Accede para comprar y gestionar tus entradas.</p>
-
-      <form id="auth-form" onsubmit="handleAuth(event)" class="space-y-3.5">
+  <!-- MODAL AUTENTICACIÓN -->
+  <div id="login-modal" onclick="closeLoginModalOnBackdrop(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="card-soft bg-card w-full max-w-sm p-6 space-y-4 relative border border-[var(--border)]">
+      <button onclick="closeLoginModal()" class="absolute top-4 right-4 text-muted hover:text-white">✕</button>
+      <h3 id="auth-title" class="font-display font-bold text-xl">Iniciar sesión</h3>
+      
+      <form onsubmit="handleAuth(event)" class="space-y-3">
         <div id="name-field" class="hidden">
-          <label class="text-xs text-muted">Nombre completo</label>
-          <input type="text" id="input-name" class="w-full bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-2.5 text-sm mt-1">
+          <label class="text-xs text-muted block mb-1">Nombre Completo</label>
+          <input id="input-name" type="text" class="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg p-2.5 text-xs focus:outline-none focus:border-[var(--gold)]" />
         </div>
+
         <div>
-          <label class="text-xs text-muted">Correo electrónico</label>
-          <input type="email" id="input-email" required class="w-full bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-2.5 text-sm mt-1">
+          <label class="text-xs text-muted block mb-1">Correo Electrónico</label>
+          <input id="input-email" type="email" required class="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg p-2.5 text-xs focus:outline-none focus:border-[var(--gold)]" />
         </div>
+
         <div>
-          <label class="text-xs text-muted">Contraseña</label>
-          <input type="password" id="input-pass" required class="w-full bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-2.5 text-sm mt-1">
+          <label class="text-xs text-muted block mb-1">Contraseña</label>
+          <input id="input-pass" type="password" required class="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg p-2.5 text-xs focus:outline-none focus:border-[var(--gold)]" />
         </div>
+
         <div id="bio-field" class="hidden">
-          <label class="text-xs text-muted">Verificación biométrica</label>
-          <input type="text" id="input-bio" placeholder="ej. rostro_usuario_123" class="w-full bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-2.5 text-sm mt-1">
+          <label class="text-xs text-muted block mb-1">Documento de Identidad / Bio</label>
+          <input id="input-bio" type="text" class="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg p-2.5 text-xs focus:outline-none focus:border-[var(--gold)]" />
         </div>
-        <button type="submit" id="btn-submit" class="w-full btn-gold py-2.5 rounded-lg transition">Ingresar</button>
+
+        <button type="submit" id="btn-submit" class="btn-gold w-full text-xs font-semibold py-2.5 rounded-lg transition mt-2">
+          Ingresar
+        </button>
       </form>
-      <button onclick="toggleAuthMode()" id="btn-toggle" class="w-full text-xs text-muted mt-4 hover:text-white transition text-center block">
+
+      <button onclick="toggleAuthMode()" id="btn-toggle" class="text-xs text-muted hover:text-white w-full text-center block pt-2">
         ¿No tienes cuenta? Regístrate
       </button>
     </div>
   </div>
 
+  <!-- SCRIPT CON PERSISTENCIA LOCALSTORAGE -->
   <script>
     const API = 'http://localhost:3000/api';
-    let currentUser = null;
+    let currentUser = JSON.parse(localStorage.getItem('ticketChainUser')) || null;
     let isRegister = false;
     let pendingPurchaseEventId = null;
 
@@ -298,6 +281,7 @@
         const data = await res.json();
         if (res.ok) {
           currentUser = data.user;
+          localStorage.setItem('ticketChainUser', JSON.stringify(currentUser));
           onLoginSuccess();
         } else {
           alert(data.error);
@@ -321,13 +305,12 @@
         const id = pendingPurchaseEventId;
         pendingPurchaseEventId = null;
         comprarTicket(id);
-      } else {
-        document.getElementById('dashboard').scrollIntoView({ behavior: 'smooth' });
       }
     }
 
     function logout() {
       currentUser = null;
+      localStorage.removeItem('ticketChainUser');
       document.getElementById('dashboard').classList.add('hidden');
       document.getElementById('admin-panel').classList.add('hidden');
       document.getElementById('nav-link-panel').classList.add('hidden');
@@ -477,7 +460,6 @@
         body: JSON.stringify({ eventoId, email: currentUser.email })
       });
       refresh();
-      document.getElementById('dashboard').scrollIntoView({ behavior: 'smooth' });
     }
 
     async function transferirTicket(ticketId) {
@@ -548,7 +530,7 @@
       const data = await res.json();
 
       const resDiv = document.getElementById('val-result');
-      resDiv.className = `p-3 rounded-lg text-xs font-semibold`;
+      resDiv.classList.remove('hidden');
       resDiv.style.background = data.access ? 'rgba(62,207,142,.12)' : 'rgba(242,104,95,.12)';
       resDiv.style.color = data.access ? 'var(--green)' : 'var(--red)';
       resDiv.style.border = `1px solid ${data.access ? 'rgba(62,207,142,.3)' : 'rgba(242,104,95,.3)'}`;
@@ -556,7 +538,12 @@
       refresh();
     }
 
-    refresh();
+    // Inicialización al cargar la página
+    if (currentUser) {
+      onLoginSuccess();
+    } else {
+      refresh();
+    }
   </script>
 </body>
 </html>
