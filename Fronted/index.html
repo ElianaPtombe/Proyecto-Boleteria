@@ -1,549 +1,1538 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TicketChain — Boletería Blockchain</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
   <style>
+    /* =====================================================
+       1. VARIABLES Y RESET
+    ===================================================== */
+
     :root {
       --bg: #09090b;
       --card: #121215;
       --card-soft: #18181b;
       --border: #27272a;
+
       --gold: #f0b429;
-      --gold-dim: rgba(240, 180, 41, 0.15);
+      --gold-dim: rgba(240, 180, 41, .15);
       --violet: #8f7cf5;
-      --violet-dim: rgba(143, 124, 245, 0.15);
+      --violet-dim: rgba(143, 124, 245, .15);
       --green: #3ecf8e;
       --red: #f2685f;
+      --blue: #60a5fa;
       --muted: #a1a1aa;
     }
 
-    body {
-      background-color: var(--bg);
-      color: #f4f4f5;
-      font-family: 'Space Grotesk', sans-serif;
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
-    .font-display { font-family: 'Syne', sans-serif; }
-    .bg-card { background-color: var(--card); }
-    .card-soft { background-color: var(--card-soft); border: 1px solid var(--border); border-radius: 0.75rem; }
-    .accent-gold { color: var(--gold); }
+    body {
+      background: var(--bg);
+      color: #f4f4f5;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont,
+                   "Segoe UI", Roboto, sans-serif;
+    }
+
+
+    /* =====================================================
+       2. UTILIDADES
+    ===================================================== */
+
+    .hidden { display: none !important; }
+
+    .accent-gold   { color: var(--gold); }
+    .accent-green  { color: var(--green); }
     .accent-violet { color: var(--violet); }
-    .accent-green { color: var(--green); }
-    .text-muted { color: var(--muted); }
+    .accent-blue   { color: var(--blue); }
+    .text-muted    { color: var(--muted); }
+
+    .mt-1 { margin-top: 1rem; }
+    .mb-1 { margin-bottom: 1rem; }
+
+    .stack        { display: flex; flex-direction: column; gap: .7rem; }
+    .stack--tight { gap: .6rem; }
+    .stack--loose { gap: .8rem; }
+
+
+    /* =====================================================
+       3. BOTONES
+    ===================================================== */
 
     .btn-gold {
       background: var(--gold);
       color: #000;
-      font-weight: 600;
+      font-weight: 700;
+      border: none;
+      padding: .55rem 1rem;
+      border-radius: .5rem;
+      cursor: pointer;
     }
-    .btn-gold:hover { filter: brightness(1.1); }
+
+    .btn-gold:hover    { filter: brightness(1.1); }
+    .btn-gold:disabled { opacity: .5; cursor: not-allowed; }
 
     .btn-ghost {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, .05);
       border: 1px solid var(--border);
-      color: #f4f4f5;
+      color: #fff;
+      padding: .55rem 1rem;
+      border-radius: .5rem;
+      cursor: pointer;
     }
-    .btn-ghost:hover { background: rgba(255, 255, 255, 0.1); }
 
-    .ticket {
-      background: var(--card);
+    .btn-ghost:hover { background: rgba(255, 255, 255, .1); }
+
+    .btn-small {
+      padding: .35rem .6rem;
+      border-radius: .45rem;
+      font-size: .72rem;
+      cursor: pointer;
       border: 1px solid var(--border);
-      border-radius: 0.75rem;
+      background: rgba(255, 255, 255, .05);
+      color: #fff;
+    }
+
+    .btn-resell {
+      color: var(--gold);
+      border-color: rgba(240, 180, 41, .3);
+      background: var(--gold-dim);
+    }
+
+    .btn-transfer {
+      color: var(--blue);
+      border-color: rgba(96, 165, 250, .3);
+      background: rgba(96, 165, 250, .08);
+    }
+
+    .btn-market {
+      color: var(--violet);
+      border-color: rgba(143, 124, 245, .3);
+      background: var(--violet-dim);
+    }
+
+    .link-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      margin-top: 1rem;
+      font-size: .75rem;
+    }
+
+
+    /* =====================================================
+       4. FORMULARIOS
+    ===================================================== */
+
+    .form-grid {
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
+      gap: .75rem;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .5rem;
+    }
+
+    .input-field {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: #fff;
+      border-radius: .5rem;
+      padding: .65rem;
+      outline: none;
+    }
+
+    .input-field:focus { border-color: var(--gold); }
+
+    .small-label {
+      color: var(--muted);
+      font-size: .7rem;
+    }
+
+
+    /* =====================================================
+       5. LAYOUT GENERAL
+    ===================================================== */
+
+    .header-nav {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+
+    .header-container {
+      max-width: 1150px;
+      margin: auto;
+      padding: 0 1rem;
+      min-height: 64px;
+      display: flex;
       align-items: center;
-      position: relative;
-      overflow: hidden;
+      justify-content: space-between;
+      gap: 1rem;
     }
 
-    .ticket::before, .ticket::after {
-      content: '';
-      position: absolute;
-      width: 16px;
-      height: 16px;
-      background-color: var(--bg);
-      border-radius: 50%;
-      right: 110px;
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
     }
-    .ticket::before { top: -8px; }
-    .ticket::after { bottom: -8px; }
 
-    .ticket-content { padding: 1.25rem; flex: 1; }
-    .ticket-stub {
-      width: 120px;
-      border-left: 2px dashed var(--border);
-      padding: 1.25rem 0.75rem;
+    .logo-box {
+      width: 36px;
+      height: 36px;
+      background: var(--gold);
+      color: #000;
+      font-weight: 900;
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
     }
+
+    .logo-text {
+      font-weight: 800;
+      font-size: 1.2rem;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+    }
+
+    .nav-link {
+      font-size: .8rem;
+      text-decoration: none;
+    }
+
+    .nav-user-name {
+      font-size: .8rem;
+      color: var(--muted);
+    }
+
+    .main-layout {
+      max-width: 1150px;
+      margin: auto;
+      padding: 2rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .section {
+      border-top: 1px solid var(--border);
+      padding-top: 1.5rem;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .section-title {
+      font-size: 1.45rem;
+      font-weight: 800;
+    }
+
+    .badge {
+      font-size: .75rem;
+      color: var(--muted);
+      background: var(--card-soft);
+      border: 1px solid var(--border);
+      padding: .25rem .7rem;
+      border-radius: 999px;
+    }
+
+    .user-display {
+      font-size: .75rem;
+      font-family: monospace;
+    }
+
+
+    /* =====================================================
+       6. EVENTOS (tarjeta tipo ticket)
+    ===================================================== */
+
+    .events-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1rem;
+    }
+
+    .ticket {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: .75rem;
+      overflow: hidden;
+      display: flex;
+      justify-content: space-between;
+      min-height: 170px;
+    }
+
+    .ticket-content {
+      padding: 1.25rem;
+      flex: 1;
+    }
+
+    .ticket-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .ticket-info {
+      color: var(--muted);
+      font-size: .78rem;
+      margin-top: .3rem;
+    }
+
+    .ticket-price {
+      color: var(--gold);
+      font-weight: 800;
+      margin-top: .6rem;
+    }
+
+    .ticket-stock {
+      color: var(--green);
+      font-size: .75rem;
+      margin-top: .35rem;
+    }
+
+    .ticket-capacity {
+      font-size: .7rem;
+      margin-top: .2rem;
+    }
+
+    .ticket-stub {
+      width: 135px;
+      border-left: 2px dashed var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+
+    /* =====================================================
+       7. PANEL DE USUARIO / ADMIN
+    ===================================================== */
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+      gap: 1rem;
+    }
+
+    .card-soft {
+      background: var(--card-soft);
+      border: 1px solid var(--border);
+      border-radius: .75rem;
+      padding: 1.2rem;
+    }
+
+    .ticket-item {
+      border: 1px solid var(--border);
+      border-radius: .6rem;
+      padding: .8rem;
+      display: flex;
+      flex-direction: column;
+      gap: .4rem;
+    }
+
+    .ticket-item-title { font-weight: 700; }
+
+    .ticket-code {
+      font-family: monospace;
+      font-size: .7rem;
+      color: var(--muted);
+      word-break: break-all;
+    }
+
+    .market-price {
+      font-weight: 800;
+      margin-top: .2rem;
+    }
+
+    .actions {
+      display: flex;
+      gap: .5rem;
+      flex-wrap: wrap;
+      margin-top: .4rem;
+    }
+
+    .no-resell   { padding: .35rem; }
+    .resell-max  { margin-top: .3rem; }
+
+    .history-item { padding: .75rem; }
+
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      gap: .5rem;
+      flex-wrap: wrap;
+    }
+
+    .result {
+      padding: .75rem;
+      border-radius: .5rem;
+      font-size: .75rem;
+      font-weight: 700;
+    }
+
+    .result--ok {
+      background: rgba(62, 207, 142, .12);
+      color: var(--green);
+      border: 1px solid rgba(62, 207, 142, .3);
+    }
+
+    .result--error {
+      background: rgba(242, 104, 95, .12);
+      color: var(--red);
+      border: 1px solid rgba(242, 104, 95, .3);
+    }
+
+
+    /* =====================================================
+       8. BLOCKCHAIN
+    ===================================================== */
+
+    .bc-toggle {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .bc-container {
+      margin-top: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .block {
+      font-family: monospace;
+      font-size: .72rem;
+    }
+
+    .block--genesis { border-left: 4px solid var(--gold); }
+    .block--regular { border-left: 4px solid var(--violet); }
+
+    .block-header {
+      display: flex;
+      justify-content: space-between;
+      gap: .5rem;
+      margin-bottom: .5rem;
+    }
+
+    .block-row     { margin-top: .3rem; }
+    .block-row--tx { margin-top: .6rem; }
+    .break-all     { word-break: break-all; }
+
+    .block-tx {
+      margin-top: .3rem;
+      padding: .6rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: .4rem;
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+
+
+    /* =====================================================
+       9. MODAL
+    ===================================================== */
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .8);
+      backdrop-filter: blur(4px);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .modal-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: .75rem;
+      padding: 1.5rem;
+      width: 100%;
+      max-width: 420px;
+      position: relative;
+    }
+
+    .modal-title {
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+    }
+
+    .close-btn {
+      position: absolute;
+      right: 1rem;
+      top: 1rem;
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+
+    /* =====================================================
+       10. RESPONSIVE
+    ===================================================== */
+
+    @media (max-width: 650px) {
+      .header-container {
+        flex-direction: column;
+        align-items: flex-start;
+        padding-top: .75rem;
+        padding-bottom: .75rem;
+      }
+
+      .form-row { grid-template-columns: 1fr; }
+
+      .ticket-stub { width: 105px; }
+    }
   </style>
 </head>
-<body class="min-h-screen flex flex-col">
 
-  <!-- NAVBAR -->
-  <header class="border-b border-[var(--border)] bg-card sticky top-0 z-40">
-    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-lg bg-[var(--gold)] text-black font-bold flex items-center justify-center font-display text-lg">T</div>
-        <span class="font-display font-bold text-xl tracking-tight">Ticket<span class="accent-gold">Chain</span></span>
+
+<body>
+
+  <!-- =====================================================
+       CABECERA
+  ====================================================== -->
+
+  <header class="header-nav">
+    <div class="header-container">
+
+      <div class="brand">
+        <div class="logo-box">T</div>
+        <span class="logo-text">Ticket<span class="accent-gold"> Chain</span></span>
       </div>
 
-      <nav class="flex items-center gap-4">
-        <div id="nav-link-panel" class="hidden">
-          <a href="#dashboard" class="text-sm font-medium text-muted hover:text-white transition">Mi Panel</a>
-        </div>
+      <nav class="nav-actions">
+        <a id="nav-panel" href="#dashboard" class="hidden text-muted nav-link">
+          Mi Panel
+        </a>
+
         <div id="nav-auth-area">
-          <button onclick="openLoginModal()" id="nav-login-btn" class="btn-gold text-sm font-semibold px-4 py-2 rounded-lg transition">
+          <button class="btn-gold" onclick="openLoginModal()">
             Iniciar sesión
           </button>
         </div>
       </nav>
+
     </div>
   </header>
 
-  <!-- CONTENIDO PRINCIPAL -->
-  <main class="max-w-6xl mx-auto px-4 py-8 flex-1 w-full space-y-10">
 
-    <!-- SECCIÓN EVENTOS -->
-    <section class="space-y-4">
-      <div class="flex items-center justify-between">
-        <h2 class="font-display font-bold text-2xl">Eventos Próximos</h2>
-        <span id="eventos-count" class="text-xs font-mono text-muted bg-[var(--card-soft)] px-3 py-1 rounded-full border border-[var(--border)]">0 eventos</span>
+  <main class="main-layout">
+
+    <!-- =====================================================
+         EVENTOS / TAQUILLA
+    ====================================================== -->
+
+    <section>
+      <div class="section-header">
+        <h2 class="section-title">Eventos Próximos</h2>
+        <span id="eventos-count" class="badge">0 eventos</span>
       </div>
-      <div id="event-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <p class="text-xs text-muted">Cargando eventos...</p>
+
+      <div id="event-list" class="events-grid">
+        <p class="text-muted">Cargando eventos...</p>
       </div>
     </section>
 
-    <!-- DASHBOARD USUARIO (LOGUEADO) -->
-    <section id="dashboard" class="hidden space-y-6 pt-6 border-t border-[var(--border)]">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <h2 class="font-display font-bold text-2xl">Mi Cuenta</h2>
-        <p id="user-display" class="text-xs font-mono accent-gold"></p>
+
+    <!-- =====================================================
+         PANEL DEL USUARIO
+    ====================================================== -->
+
+    <section id="dashboard" class="section hidden">
+
+      <div class="section-header">
+        <h2 class="section-title">Mi Cuenta</h2>
+        <p id="user-display" class="accent-gold user-display"></p>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- MIS TICKETS -->
-        <div class="card-soft p-5 space-y-4">
-          <h3 class="font-display font-bold text-lg accent-green">Mis Entradas Compradas</h3>
-          <div id="my-tickets-list" class="space-y-3">
-            <p class="text-xs text-muted">No tienes entradas activas todavía.</p>
+      <div class="dashboard-grid">
+
+        <div class="card-soft">
+          <h3 class="accent-green mb-1">Mis Entradas</h3>
+          <div id="my-tickets-list" class="stack">
+            <p class="text-muted">No tienes entradas activas.</p>
           </div>
         </div>
 
-        <!-- MERCADO DE REVENTA -->
-        <div class="card-soft p-5 space-y-4">
-          <h3 class="font-display font-bold text-lg accent-violet">Mercado Secundario (Reventa)</h3>
-          <div id="market-list" class="space-y-3">
-            <p class="text-xs text-muted">No hay entradas en reventa por ahora.</p>
+        <div class="card-soft">
+          <h3 class="accent-violet mb-1">Mercado Secundario</h3>
+          <div id="market-list" class="stack">
+            <p class="text-muted">No hay entradas en reventa.</p>
           </div>
         </div>
+
       </div>
+
+      <div class="card-soft mt-1">
+        <h3 class="accent-blue mb-1">Historial de mis entradas</h3>
+        <div id="history-list" class="stack stack--tight"></div>
+      </div>
+
     </section>
 
-    <!-- PANEL ADMINISTRADOR (SOLO ADMINS) -->
-    <section id="admin-panel" class="hidden space-y-6 pt-6 border-t border-[var(--border)]">
-      <h2 class="font-display font-bold text-2xl accent-gold">Panel de Administración</h2>
-      
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- PUBLICAR EVENTO -->
-        <form onsubmit="crearEvento(event)" class="card-soft p-5 space-y-3">
-          <h3 class="font-semibold text-sm">Crear Nuevo Evento</h3>
-          <input id="ev-nombre" type="text" placeholder="Nombre del evento" required class="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg p-2 text-xs focus:outline-none focus:border-[var(--gold)]" />
-          <input id="ev-fecha" type="text" placeholder="Fecha (ej: 25 Nov, 2026)" required class="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg p-2 text-xs focus:outline-none focus:border-[var(--gold)]" />
-          <input id="ev-lugar" type="text" placeholder="Lugar o Estadio" required class="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg p-2 text-xs focus:outline-none focus:border-[var(--gold)]" />
-          <div class="grid grid-cols-2 gap-2">
-            <input id="ev-precio" type="number" placeholder="Precio (COP)" required class="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg p-2 text-xs focus:outline-none focus:border-[var(--gold)]" />
-            <input id="ev-aforo" type="number" placeholder="Aforo máximo" required class="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg p-2 text-xs focus:outline-none focus:border-[var(--gold)]" />
+
+    <!-- =====================================================
+         PANEL ADMIN
+    ====================================================== -->
+
+    <section id="admin-panel" class="section hidden">
+
+      <h2 class="section-title accent-gold mb-1">
+        Panel de Administración
+      </h2>
+
+      <div class="dashboard-grid">
+
+        <!-- Crear evento -->
+        <form onsubmit="crearEvento(event)" class="card-soft form-grid">
+          <h3>Crear Nuevo Evento</h3>
+
+          <input id="ev-nombre" class="input-field" type="text"
+                 placeholder="Nombre del evento" required>
+
+          <input id="ev-fecha" class="input-field" type="text"
+                 placeholder="Fecha: 25 Nov, 2026" required>
+
+          <input id="ev-lugar" class="input-field" type="text"
+                 placeholder="Lugar o estadio" required>
+
+          <div class="form-row">
+            <input id="ev-precio" class="input-field" type="number"
+                   min="0" placeholder="Precio COP" required>
+
+            <input id="ev-aforo" class="input-field" type="number"
+                   min="1" placeholder="Aforo" required>
           </div>
-          <button type="submit" class="btn-gold w-full text-xs py-2 rounded-lg transition">Publicar Evento</button>
+
+          <button type="submit" class="btn-gold">Publicar Evento</button>
         </form>
 
-        <!-- VALIDACIÓN DE TICKETS EN PUERTA -->
-        <form onsubmit="validarTicket(event)" class="card-soft p-5 space-y-3">
-          <h3 class="font-semibold text-sm">Validar Entrada en Puerta</h3>
-          <input id="val-hash" type="text" placeholder="Código / Hash del Ticket" required class="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg p-2 text-xs font-mono focus:outline-none focus:border-[var(--gold)]" />
-          <input id="val-email" type="email" placeholder="Correo del asistente" required class="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg p-2 text-xs focus:outline-none focus:border-[var(--gold)]" />
-          <input id="val-bio" type="text" placeholder="Documento / Verificación" class="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg p-2 text-xs focus:outline-none focus:border-[var(--gold)]" />
-          <button type="submit" class="btn-ghost w-full text-xs py-2 rounded-lg transition">Verificar Entrada</button>
-          <div id="val-result" class="hidden p-3 rounded-lg text-xs font-semibold"></div>
+        <!-- Cortesías -->
+        <form onsubmit="emitirCortesia(event)" class="card-soft form-grid">
+          <h3 class="accent-gold">Emitir Cortesías</h3>
+
+          <label class="small-label">Evento</label>
+          <select id="cortesia-evento" class="input-field" required></select>
+
+          <input id="cortesia-email" class="input-field" type="email"
+                 placeholder="Correo del beneficiario" required>
+
+          <input id="cortesia-cantidad" class="input-field" type="number"
+                 min="1" max="100" placeholder="Cantidad" required>
+
+          <button type="submit" class="btn-gold">Generar Cortesías</button>
         </form>
+
+        <!-- Validar entrada -->
+        <form onsubmit="validarTicket(event)" class="card-soft form-grid">
+          <h3 class="accent-green">Validar Entrada en Puerta</h3>
+
+          <input id="val-hash" class="input-field" type="text"
+                 placeholder="Código del Ticket" required>
+
+          <input id="val-email" class="input-field" type="email"
+                 placeholder="Correo del asistente" required>
+
+          <button type="submit" class="btn-ghost">Verificar Entrada</button>
+
+          <div id="val-result" class="hidden result"></div>
+        </form>
+
       </div>
     </section>
 
-    <!-- BLOCKCHAIN EXPLORER -->
-    <section class="pt-6 border-t border-[var(--border)] space-y-4">
-      <button onclick="toggleBlockchainView()" class="w-full flex justify-between items-center card-soft p-4 hover:border-[var(--gold)] transition">
-        <span class="font-display font-bold text-base flex items-center gap-2">
-          ⛓️ Explorador de Blockchain (Ledger)
-        </span>
-        <span id="bc-icon" class="text-sm transition-transform duration-200">▼</span>
+
+    <!-- =====================================================
+         EXPLORADOR DE BLOCKCHAIN
+    ====================================================== -->
+
+    <section class="section">
+
+      <button onclick="toggleBlockchainView()" class="card-soft bc-toggle">
+        <span>⛓️ Explorador de Blockchain</span>
+        <span id="bc-icon">▼</span>
       </button>
 
-      <div id="blockchain-container" class="hidden space-y-4">
-        <p id="bc-status-summary" class="text-xs font-mono text-muted"></p>
-        <div id="blockchain-blocks" class="space-y-3"></div>
+      <div id="blockchain-container" class="hidden bc-container">
+        <p id="bc-status-summary" class="text-muted block"></p>
+        <div id="blockchain-blocks" class="stack stack--loose"></div>
       </div>
+
     </section>
+
   </main>
 
-  <!-- MODAL AUTENTICACIÓN -->
-  <div id="login-modal" onclick="closeLoginModalOnBackdrop(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="card-soft bg-card w-full max-w-sm p-6 space-y-4 relative border border-[var(--border)]">
-      <button onclick="closeLoginModal()" class="absolute top-4 right-4 text-muted hover:text-white">✕</button>
-      <h3 id="auth-title" class="font-display font-bold text-xl">Iniciar sesión</h3>
-      
-      <form onsubmit="handleAuth(event)" class="space-y-3">
+
+  <!-- =====================================================
+       MODAL LOGIN / REGISTRO
+  ====================================================== -->
+
+  <div id="login-modal" class="modal-overlay hidden"
+       onclick="closeLoginModalOnBackdrop(event)">
+
+    <div class="modal-box">
+
+      <button class="close-btn" onclick="cancelLoginModal()">✕</button>
+
+      <h3 id="auth-title" class="modal-title">Iniciar sesión</h3>
+
+      <form onsubmit="handleAuth(event)" class="form-grid">
+
         <div id="name-field" class="hidden">
-          <label class="text-xs text-muted block mb-1">Nombre Completo</label>
-          <input id="input-name" type="text" class="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg p-2.5 text-xs focus:outline-none focus:border-[var(--gold)]" />
+          <label class="small-label">Nombre completo</label>
+          <input id="input-name" class="input-field" type="text">
         </div>
 
         <div>
-          <label class="text-xs text-muted block mb-1">Correo Electrónico</label>
-          <input id="input-email" type="email" required class="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg p-2.5 text-xs focus:outline-none focus:border-[var(--gold)]" />
+          <label class="small-label">Correo electrónico</label>
+          <input id="input-email" class="input-field" type="email" required>
         </div>
 
         <div>
-          <label class="text-xs text-muted block mb-1">Contraseña</label>
-          <input id="input-pass" type="password" required class="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg p-2.5 text-xs focus:outline-none focus:border-[var(--gold)]" />
+          <label class="small-label">Contraseña</label>
+          <input id="input-pass" class="input-field" type="password" required>
         </div>
 
         <div id="bio-field" class="hidden">
-          <label class="text-xs text-muted block mb-1">Documento de Identidad / Bio</label>
-          <input id="input-bio" type="text" class="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg p-2.5 text-xs focus:outline-none focus:border-[var(--gold)]" />
+          <label class="small-label">Documento / Bio</label>
+          <input id="input-bio" class="input-field" type="text">
         </div>
 
-        <button type="submit" id="btn-submit" class="btn-gold w-full text-xs font-semibold py-2.5 rounded-lg transition mt-2">
-          Ingresar
-        </button>
+        <button id="btn-submit" type="submit" class="btn-gold">Ingresar</button>
+
       </form>
 
-      <button onclick="toggleAuthMode()" id="btn-toggle" class="text-xs text-muted hover:text-white w-full text-center block pt-2">
+      <button id="btn-toggle" class="link-btn" onclick="toggleAuthMode()">
         ¿No tienes cuenta? Regístrate
       </button>
+
     </div>
   </div>
 
-  <!-- SCRIPT CON PERSISTENCIA LOCALSTORAGE -->
-  <script>
-    const API = 'http://localhost:3000/api';
-    let currentUser = JSON.parse(localStorage.getItem('ticketChainUser')) || null;
-    let isRegister = false;
-    let pendingPurchaseEventId = null;
 
-    function formatCOP(valor) {
-      return Math.round(valor).toLocaleString('es-CO');
+  <script>
+    // =====================================================
+    // 1. CONFIGURACIÓN Y ESTADO
+    // =====================================================
+
+    const CONFIG = {
+      API: 'http://localhost:3000/api',
+      MAX_RESALE_EXTRA: 10000,
+      STORAGE_KEY: 'ticketChainUser'
+    };
+
+    const TICKET_STATE = {
+      VALID: 'VALIDO',
+      USED: 'USADO'
+    };
+
+    const state = {
+      currentUser: JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEY)) || null,
+      isRegister: false,
+      pendingPurchaseEventId: null
+    };
+
+
+    // =====================================================
+    // 2. UTILIDADES
+    // =====================================================
+
+    const $ = id => document.getElementById(id);
+
+    function formatCOP(value) {
+      return Math.round(Number(value) || 0).toLocaleString('es-CO');
     }
 
-    function openLoginModal() { document.getElementById('login-modal').classList.remove('hidden'); }
-    function closeLoginModal() { document.getElementById('login-modal').classList.add('hidden'); pendingPurchaseEventId = null; }
-    function closeLoginModalOnBackdrop(e) { if (e.target.id === 'login-modal') closeLoginModal(); }
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    // Serializa un valor para usarlo dentro de un onclick='...'
+    function jsArg(value) {
+      return JSON.stringify(value);
+    }
+
+    // Rellena un contenedor con una lista o con un mensaje vacío
+    function renderList(containerId, items, emptyMessage, templateFn) {
+      $(containerId).innerHTML = items.length
+        ? items.map(templateFn).join('')
+        : `<p class="text-muted">${emptyMessage}</p>`;
+    }
+
+
+    // =====================================================
+    // 3. CLIENTE HTTP
+    // =====================================================
+
+    async function request(url, options = {}) {
+      try {
+        const response = await fetch(url, options);
+
+        let data = {};
+        try {
+          data = await response.json();
+        } catch {
+          data = {};
+        }
+
+        return { response, data };
+
+      } catch (error) {
+        console.error(error);
+        throw new Error(
+          'No se pudo conectar con el servidor. Verifica que server.js esté ejecutándose.'
+        );
+      }
+    }
+
+    function postJSON(path, body) {
+      return request(`${CONFIG.API}${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+    }
+
+    // Muestra el mensaje de éxito o el de error según la respuesta
+    function alertResult(result) {
+      alert(result.response.ok ? result.data.message : result.data.error);
+    }
+
+
+    // =====================================================
+    // 4. MODAL DE LOGIN / REGISTRO
+    // =====================================================
+
+    function openLoginModal() {
+      $('login-modal').classList.remove('hidden');
+    }
+
+    function closeLoginModal() {
+      $('login-modal').classList.add('hidden');
+    }
+
+    function cancelLoginModal() {
+      state.pendingPurchaseEventId = null;
+      closeLoginModal();
+    }
+
+    function closeLoginModalOnBackdrop(e) {
+      if (e.target.id === 'login-modal') {
+        cancelLoginModal();
+      }
+    }
 
     function toggleAuthMode() {
-      isRegister = !isRegister;
-      document.getElementById('auth-title').textContent = isRegister ? 'Crear cuenta' : 'Iniciar sesión';
-      document.getElementById('btn-submit').textContent = isRegister ? 'Registrarme' : 'Ingresar';
-      document.getElementById('btn-toggle').textContent = isRegister ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate';
-      document.getElementById('name-field').classList.toggle('hidden', !isRegister);
-      document.getElementById('bio-field').classList.toggle('hidden', !isRegister);
+      state.isRegister = !state.isRegister;
+      const reg = state.isRegister;
+
+      $('auth-title').textContent = reg ? 'Crear cuenta' : 'Iniciar sesión';
+      $('btn-submit').textContent = reg ? 'Registrarme' : 'Ingresar';
+      $('btn-toggle').textContent = reg
+        ? '¿Ya tienes cuenta? Inicia sesión'
+        : '¿No tienes cuenta? Regístrate';
+
+      $('name-field').classList.toggle('hidden', !reg);
+      $('bio-field').classList.toggle('hidden', !reg);
     }
+
+
+    // =====================================================
+    // 5. AUTENTICACIÓN Y SESIÓN
+    // =====================================================
 
     async function handleAuth(e) {
       e.preventDefault();
-      const email = document.getElementById('input-email').value;
-      const pass = document.getElementById('input-pass').value;
 
-      if (isRegister) {
-        const name = document.getElementById('input-name').value;
-        const bio = document.getElementById('input-bio').value;
-        const res = await fetch(`${API}/register`, {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ name, email, pass, bio })
-        });
-        const data = await res.json();
-        alert(data.message || data.error);
-        if (res.ok) toggleAuthMode();
-      } else {
-        const res = await fetch(`${API}/login`, {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ email, pass })
-        });
-        const data = await res.json();
-        if (res.ok) {
-          currentUser = data.user;
-          localStorage.setItem('ticketChainUser', JSON.stringify(currentUser));
-          onLoginSuccess();
-        } else {
-          alert(data.error);
+      const email = $('input-email').value.trim().toLowerCase();
+      const pass = $('input-pass').value;
+
+      try {
+        if (state.isRegister) {
+          const name = $('input-name').value.trim();
+          const bio = $('input-bio').value.trim();
+
+          const result = await postJSON('/register', { name, email, pass, bio });
+
+          alert(result.data.message || result.data.error);
+
+          if (result.response.ok) {
+            toggleAuthMode();
+          }
+          return;
         }
+
+        const result = await postJSON('/login', { email, pass });
+
+        if (!result.response.ok) {
+          alert(result.data.error || 'No fue posible iniciar sesión');
+          return;
+        }
+
+        state.currentUser = result.data.user;
+        localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(state.currentUser));
+
+        onLoginSuccess();
+
+      } catch (error) {
+        alert(error.message);
       }
+    }
+
+    function renderNavLoggedIn() {
+      $('nav-auth-area').innerHTML = `
+        <span class="nav-user-name">${escapeHtml(state.currentUser.name)}</span>
+        <button onclick="logout()" class="btn-ghost">Cerrar sesión</button>
+      `;
+    }
+
+    function renderNavLoggedOut() {
+      $('nav-auth-area').innerHTML = `
+        <button onclick="openLoginModal()" class="btn-gold">Iniciar sesión</button>
+      `;
     }
 
     function onLoginSuccess() {
       closeLoginModal();
-      document.getElementById('nav-auth-area').innerHTML = `
-        <span class="text-sm text-muted hidden sm:inline">${currentUser.name}</span>
-        <button onclick="logout()" class="btn-ghost text-sm font-semibold px-4 py-2 rounded-lg transition">Cerrar sesión</button>
-      `;
-      document.getElementById('nav-link-panel').classList.remove('hidden');
-      document.getElementById('user-display').textContent = `${currentUser.name} · ${currentUser.email}`;
-      document.getElementById('dashboard').classList.remove('hidden');
-      document.getElementById('admin-panel').classList.toggle('hidden', !currentUser.isAdmin);
+      renderNavLoggedIn();
+
+      $('nav-panel').classList.remove('hidden');
+      $('user-display').textContent =
+        `${state.currentUser.name} · ${state.currentUser.email}`;
+
+      $('dashboard').classList.remove('hidden');
+      $('admin-panel').classList.toggle('hidden', !state.currentUser.isAdmin);
+
       refresh();
 
-      if (pendingPurchaseEventId) {
-        const id = pendingPurchaseEventId;
-        pendingPurchaseEventId = null;
-        comprarTicket(id);
+      // Si el usuario intentó comprar antes de iniciar sesión, se retoma la compra
+      if (state.pendingPurchaseEventId !== null) {
+        const eventId = state.pendingPurchaseEventId;
+        state.pendingPurchaseEventId = null;
+
+        setTimeout(() => comprarTicket(eventId), 100);
       }
     }
 
     function logout() {
-      currentUser = null;
-      localStorage.removeItem('ticketChainUser');
-      document.getElementById('dashboard').classList.add('hidden');
-      document.getElementById('admin-panel').classList.add('hidden');
-      document.getElementById('nav-link-panel').classList.add('hidden');
-      document.getElementById('nav-auth-area').innerHTML = `
-        <button onclick="openLoginModal()" id="nav-login-btn" class="btn-gold text-sm font-semibold px-4 py-2 rounded-lg transition">
-          Iniciar sesión
-        </button>
-      `;
+      state.currentUser = null;
+      localStorage.removeItem(CONFIG.STORAGE_KEY);
+
+      $('dashboard').classList.add('hidden');
+      $('admin-panel').classList.add('hidden');
+      $('nav-panel').classList.add('hidden');
+
+      renderNavLoggedOut();
       refresh();
     }
 
+
+    // =====================================================
+    // 6. PLANTILLAS HTML (render de tarjetas)
+    // =====================================================
+
+    function eventCardHTML(evento) {
+      const agotado = evento.disponibles <= 0;
+
+      return `
+        <div class="ticket">
+
+          <div class="ticket-content">
+            <p class="ticket-title">${escapeHtml(evento.nombre)}</p>
+            <p class="ticket-info">📅 ${escapeHtml(evento.fecha)}</p>
+            <p class="ticket-info">📍 ${escapeHtml(evento.lugar)}</p>
+            <p class="ticket-price">$${formatCOP(evento.precio)} COP</p>
+
+            <p class="ticket-stock">
+              ${agotado
+                ? '❌ Aforo completo'
+                : `🎟️ ${evento.disponibles} entradas disponibles`}
+            </p>
+
+            <p class="text-muted ticket-capacity">
+              Aforo: ${evento.aforo} · Vendidas: ${evento.vendidas}
+            </p>
+          </div>
+
+          <div class="ticket-stub">
+            <button
+              class="btn-gold"
+              ${agotado ? 'disabled' : ''}
+              onclick="comprarTicket(${evento.id})"
+            >
+              ${agotado ? 'Agotado' : 'Comprar'}
+            </button>
+          </div>
+
+        </div>
+      `;
+    }
+
+    function eventOptionHTML(evento) {
+      return `
+        <option value="${evento.id}">
+          ${escapeHtml(evento.nombre)} · Disponibles: ${evento.disponibles}
+        </option>
+      `;
+    }
+
+    function myTicketHTML(ticket) {
+      const original = Number(ticket.precioOriginal);
+      const isCourtesy = original === 0;
+      const maxPrice = original + CONFIG.MAX_RESALE_EXTRA;
+
+      const resellAction = isCourtesy
+        ? `<span class="small-label no-resell">Cortesía no revendible</span>`
+        : `<button class="btn-small btn-resell"
+             onclick='revenderTicket(${jsArg(ticket.ticketId)})'>
+             Revender
+           </button>`;
+
+      const resellLimit = isCourtesy
+        ? ''
+        : `<p class="small-label resell-max">
+             Máximo de reventa:
+             <strong class="accent-gold">$${formatCOP(maxPrice)} COP</strong>
+           </p>`;
+
+      return `
+        <div class="ticket-item">
+
+          <p class="accent-green ticket-item-title">${escapeHtml(ticket.evento)}</p>
+
+          <p class="ticket-code">Código: ${escapeHtml(ticket.ticketId)}</p>
+
+          <p class="small-label">
+            Precio original:
+            ${isCourtesy ? 'CORTESÍA' : `$${formatCOP(ticket.precioOriginal)} COP`}
+          </p>
+
+          <div class="actions">
+            <button class="btn-small btn-transfer"
+                    onclick='transferirTicket(${jsArg(ticket.ticketId)})'>
+              Transferir
+            </button>
+            ${resellAction}
+          </div>
+
+          ${resellLimit}
+
+        </div>
+      `;
+    }
+
+    function marketTicketHTML(ticket) {
+      const isOwn = ticket.propietario === state.currentUser.email;
+
+      const action = isOwn
+        ? `<span class="small-label">Tu entrada está publicada en el mercado.</span>`
+        : `<button class="btn-small btn-market"
+             onclick='comprarReventa(${jsArg(ticket.ticketId)})'>
+             Comprar en reventa
+           </button>`;
+
+      return `
+        <div class="ticket-item">
+
+          <p class="accent-violet">${escapeHtml(ticket.evento)}</p>
+
+          <p class="small-label">Vendedor: ${escapeHtml(ticket.propietario)}</p>
+
+          <p class="market-price">$${formatCOP(ticket.precio)} COP</p>
+
+          <p class="ticket-code">Ticket: ${escapeHtml(ticket.ticketId)}</p>
+
+          ${action}
+
+        </div>
+      `;
+    }
+
+    function historyItemHTML(ticket) {
+      const stateClass = ticket.estado === TICKET_STATE.USED
+        ? 'accent-gold'
+        : 'accent-green';
+
+      return `
+        <div class="card-soft history-item">
+
+          <div class="history-header">
+            <strong>${escapeHtml(ticket.evento)}</strong>
+            <span class="${stateClass}">${ticket.estado}</span>
+          </div>
+
+          <p class="ticket-code">${escapeHtml(ticket.ticketId)}</p>
+
+        </div>
+      `;
+    }
+
+    function blockHTML(block) {
+      const kind = block.index === 0 ? 'block--genesis' : 'block--regular';
+      const date = new Date(block.timestamp).toLocaleString('es-CO');
+      const transactions = JSON.stringify(block.transactions, null, 2);
+
+      return `
+        <div class="card-soft block ${kind}">
+
+          <div class="block-header">
+            <strong>BLOQUE #${block.index}</strong>
+            <span class="text-muted">${date}</span>
+          </div>
+
+          <div>
+            <span class="text-muted">Hash:</span>
+            <span class="accent-gold break-all">${escapeHtml(block.hash)}</span>
+          </div>
+
+          <div class="block-row">
+            <span class="text-muted">Hash previo:</span>
+            <span class="break-all">${escapeHtml(block.previousHash)}</span>
+          </div>
+
+          <div class="block-row">
+            <span class="text-muted">Nonce:</span>
+            ${block.nonce}
+          </div>
+
+          <div class="block-row--tx">
+            <span class="text-muted">Transacciones:</span>
+            <pre class="block-tx">${escapeHtml(transactions)}</pre>
+          </div>
+
+        </div>
+      `;
+    }
+
+
+    // =====================================================
+    // 7. ACTUALIZACIÓN DE VISTAS
+    // =====================================================
+
+    async function refreshEventos() {
+      const result = await request(`${CONFIG.API}/eventos`);
+
+      if (!result.response.ok) {
+        throw new Error(result.data.error || 'Error obteniendo eventos');
+      }
+
+      const eventos = result.data;
+
+      $('eventos-count').textContent =
+        `${eventos.length} evento${eventos.length === 1 ? '' : 's'}`;
+
+      renderList('event-list', eventos, 'No hay eventos publicados.', eventCardHTML);
+      cargarSelectEventos(eventos);
+    }
+
+    function cargarSelectEventos(eventos) {
+      const select = $('cortesia-evento');
+      if (!select) return;
+
+      select.innerHTML = eventos.map(eventOptionHTML).join('');
+    }
+
+    async function refreshUserPanels() {
+      const result = await request(`${CONFIG.API}/chain-status`);
+
+      if (!result.response.ok) {
+        throw new Error(
+          result.data.error || 'No fue posible consultar los tickets'
+        );
+      }
+
+      const tickets = result.data.tickets;
+      const email = state.currentUser.email;
+
+      const myTickets = tickets.filter(t =>
+        t.propietario === email &&
+        t.estado === TICKET_STATE.VALID &&
+        !t.enVenta
+      );
+
+      const marketTickets = tickets.filter(t =>
+        t.enVenta && t.estado === TICKET_STATE.VALID
+      );
+
+      const history = tickets.filter(t => t.propietario === email);
+
+      renderList(
+        'my-tickets-list', myTickets,
+        'No tienes entradas activas actualmente.', myTicketHTML
+      );
+
+      renderList(
+        'market-list', marketTickets,
+        'No hay entradas en reventa por ahora.', marketTicketHTML
+      );
+
+      renderList('history-list', history, 'No hay historial.', historyItemHTML);
+    }
+
+    async function refresh() {
+      try {
+        await refreshEventos();
+
+        if (!state.currentUser) return;
+
+        await refreshUserPanels();
+
+        if (!$('blockchain-container').classList.contains('hidden')) {
+          await renderBlockchain();
+        }
+
+      } catch (error) {
+        console.error('Error actualizando:', error);
+      }
+    }
+
+
+    // =====================================================
+    // 8. ACCIONES DEL USUARIO
+    // =====================================================
+
+    async function comprarTicket(eventoId) {
+      if (!state.currentUser) {
+        state.pendingPurchaseEventId = eventoId;
+        openLoginModal();
+        return;
+      }
+
+      try {
+        const result = await postJSON('/tickets/buy', {
+          eventoId,
+          email: state.currentUser.email
+        });
+
+        if (!result.response.ok) {
+          alert(result.data.error || 'No fue posible comprar la entrada');
+          return;
+        }
+
+        alert(`Compra realizada.\n\nCódigo de entrada:\n${result.data.ticketId}`);
+
+        await refresh();
+
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    async function revenderTicket(ticketId) {
+      try {
+        const result = await request(
+          `${CONFIG.API}/tickets/${encodeURIComponent(ticketId)}`
+        );
+
+        if (!result.response.ok) {
+          alert(result.data.error);
+          return;
+        }
+
+        const original = Number(result.data.precioOriginal);
+        const maximo = original + CONFIG.MAX_RESALE_EXTRA;
+
+        const precioTexto = prompt(
+          `Precio de reventa.\n\n` +
+          `Precio original: $${formatCOP(original)} COP\n` +
+          `Máximo permitido: $${formatCOP(maximo)} COP\n\n` +
+          `Ingrese el precio:`
+        );
+
+        if (precioTexto === null) return;
+
+        const precio = Number(precioTexto);
+
+        if (!Number.isFinite(precio)) {
+          alert('El precio no es válido.');
+          return;
+        }
+
+        const resultResell = await postJSON('/tickets/resell', {
+          ticketId,
+          precio,
+          propietario: state.currentUser.email
+        });
+
+        if (!resultResell.response.ok) {
+          alert(resultResell.data.error);
+          return;
+        }
+
+        alert('Ticket publicado en el mercado.');
+
+        await refresh();
+
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    async function comprarReventa(ticketId) {
+      if (!state.currentUser) {
+        openLoginModal();
+        return;
+      }
+
+      const confirmar = confirm(
+        '¿Deseas comprar esta entrada en el mercado secundario?'
+      );
+
+      if (!confirmar) return;
+
+      try {
+        const result = await postJSON('/tickets/buy-resell', {
+          ticketId,
+          comprador: state.currentUser.email
+        });
+
+        alertResult(result);
+
+        await refresh();
+
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    async function transferirTicket(ticketId) {
+      const nuevoPropietario = prompt('Correo del nuevo propietario:');
+
+      if (!nuevoPropietario) return;
+
+      try {
+        const result = await postJSON('/tickets/transfer', {
+          ticketId,
+          nuevoPropietario: nuevoPropietario.trim().toLowerCase(),
+          remitente: state.currentUser.email
+        });
+
+        alertResult(result);
+
+        await refresh();
+
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+
+    // =====================================================
+    // 9. ACCIONES DE ADMINISTRADOR
+    // =====================================================
+
+    async function crearEvento(e) {
+      e.preventDefault();
+
+      if (!state.currentUser || !state.currentUser.isAdmin) {
+        alert('No tienes permisos de administrador.');
+        return;
+      }
+
+      const nombre = $('ev-nombre').value.trim();
+      const fecha = $('ev-fecha').value.trim();
+      const lugar = $('ev-lugar').value.trim();
+      const precio = Number($('ev-precio').value);
+      const aforo = Number($('ev-aforo').value);
+
+      try {
+        const result = await postJSON('/eventos', {
+          nombre,
+          fecha,
+          lugar,
+          precio,
+          aforo,
+          adminEmail: state.currentUser.email
+        });
+
+        alert(result.response.ok ? 'Evento publicado con éxito.' : result.data.error);
+
+        if (result.response.ok) {
+          e.target.reset();
+          await refresh();
+        }
+
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    async function emitirCortesia(e) {
+      e.preventDefault();
+
+      const eventoId = Number($('cortesia-evento').value);
+      const destinatario = $('cortesia-email').value.trim().toLowerCase();
+      const cantidad = Number($('cortesia-cantidad').value);
+
+      try {
+        const result = await postJSON('/tickets/courtesy', {
+          eventoId,
+          destinatario,
+          cantidad,
+          adminEmail: state.currentUser.email
+        });
+
+        if (!result.response.ok) {
+          alert(result.data.error);
+          return;
+        }
+
+        alert(
+          `${result.data.message}\n\n` +
+          `Tickets:\n` +
+          result.data.tickets.join('\n')
+        );
+
+        e.target.reset();
+        await refresh();
+
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    function showValidationResult(data) {
+      const box = $('val-result');
+
+      box.classList.remove('hidden', 'result--ok', 'result--error');
+      box.classList.add(data.access ? 'result--ok' : 'result--error');
+
+      box.textContent = data.message || data.error;
+    }
+
+    async function validarTicket(e) {
+      e.preventDefault();
+
+      if (!state.currentUser || !state.currentUser.isAdmin) {
+        alert('Solo un administrador puede validar entradas.');
+        return;
+      }
+
+      const hash = $('val-hash').value.trim();
+      const email = $('val-email').value.trim().toLowerCase();
+
+      try {
+        const result = await postJSON('/tickets/validate', {
+          hash,
+          email,
+          adminEmail: state.currentUser.email
+        });
+
+        showValidationResult(result.data);
+
+        if (result.response.ok) {
+          $('val-hash').value = '';
+          $('val-email').value = '';
+        }
+
+        await refresh();
+
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+
+    // =====================================================
+    // 10. EXPLORADOR DE BLOCKCHAIN
+    // =====================================================
+
     function toggleBlockchainView() {
-      const container = document.getElementById('blockchain-container');
-      const icon = document.getElementById('bc-icon');
+      const container = $('blockchain-container');
+      const icon = $('bc-icon');
+
       const isHidden = container.classList.contains('hidden');
 
       if (isHidden) {
         container.classList.remove('hidden');
-        icon.style.transform = 'rotate(180deg)';
+        icon.textContent = '▲';
         renderBlockchain();
       } else {
         container.classList.add('hidden');
-        icon.style.transform = 'rotate(0deg)';
+        icon.textContent = '▼';
       }
     }
 
     async function renderBlockchain() {
       try {
-        const res = await fetch(`${API}/chain-status`);
-        const status = await res.json();
+        const result = await request(`${CONFIG.API}/chain-status`);
 
-        document.getElementById('bc-status-summary').textContent = `Total Bloques: ${status.length} | Estado: ${status.valid ? '✅ VÁLIDA' : '❌ CORROMPIDA'}`;
-
-        const blocksContainer = document.getElementById('blockchain-blocks');
-        blocksContainer.innerHTML = status.chain.map(block => `
-          <div class="card-soft p-4 text-xs font-mono space-y-2 border-l-4 ${block.index === 0 ? 'border-l-[var(--gold)]' : 'border-l-[var(--violet)]'}">
-            <div class="flex justify-between items-center text-muted border-b border-[var(--border)] pb-2">
-              <span class="font-bold text-white">Bloque #${block.index}</span>
-              <span>${new Date(block.timestamp).toLocaleString('es-CO')}</span>
-            </div>
-            <div><span class="text-muted">Hash:</span> <span class="accent-gold break-all">${block.hash}</span></div>
-            <div><span class="text-muted">Hash previo:</span> <span class="break-all">${block.previousHash}</span></div>
-            <div><span class="text-muted">Nonce:</span> <span>${block.nonce}</span></div>
-            <div>
-              <span class="text-muted">Transacciones (${block.transactions.length}):</span>
-              <pre class="mt-1 p-2 bg-[var(--bg)] rounded border border-[var(--border)] text-[11px] overflow-x-auto text-muted">${JSON.stringify(block.transactions, null, 2)}</pre>
-            </div>
-          </div>
-        `).join('');
-      } catch (err) {
-        document.getElementById('bc-status-summary').textContent = 'Error al conectar con el servidor Backend';
-      }
-    }
-
-    async function crearEvento(e) {
-      e.preventDefault();
-      const nombre = document.getElementById('ev-nombre').value;
-      const fecha = document.getElementById('ev-fecha').value;
-      const lugar = document.getElementById('ev-lugar').value;
-      const precio = parseFloat(document.getElementById('ev-precio').value);
-      const aforo = parseInt(document.getElementById('ev-aforo').value);
-
-      const res = await fetch(`${API}/eventos`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ nombre, fecha, lugar, precio, aforo, adminEmail: currentUser.email })
-      });
-
-      const data = await res.json();
-      alert(res.ok ? 'Evento publicado con éxito' : data.error);
-      if (res.ok) {
-        e.target.reset();
-        refresh();
-      }
-    }
-
-    async function refresh() {
-      try {
-        const resEvents = await fetch(`${API}/eventos`);
-        const eventos = await resEvents.json();
-
-        document.getElementById('eventos-count').textContent = `${eventos.length} evento${eventos.length === 1 ? '' : 's'}`;
-
-        document.getElementById('event-list').innerHTML = eventos.map(e => `
-          <div class="ticket">
-            <div class="ticket-content">
-              <p class="font-display font-semibold text-lg">${e.nombre}</p>
-              <p class="text-xs text-muted mt-1">${e.fecha} · ${e.lugar}</p>
-              <p class="text-sm accent-gold font-semibold mt-2">$${formatCOP(e.precio)} COP</p>
-            </div>
-            <div class="ticket-stub">
-              <button onclick="comprarTicket(${e.id})" class="btn-gold text-xs font-semibold px-4 py-2 rounded-lg transition">
-                Comprar
-              </button>
-            </div>
-          </div>
-        `).join('');
-
-        if (!document.getElementById('blockchain-container').classList.contains('hidden')) {
-          renderBlockchain();
+        if (!result.response.ok) {
+          throw new Error('No se pudo obtener la blockchain');
         }
 
-        if (!currentUser) return;
+        const status = result.data;
 
-        const resStatus = await fetch(`${API}/chain-status`);
-        const status = await resStatus.json();
+        $('bc-status-summary').textContent =
+          `Bloques: ${status.length} | ` +
+          `Estado: ${status.valid
+            ? '✅ BLOCKCHAIN VÁLIDA'
+            : '❌ BLOCKCHAIN CORROMPIDA'}`;
 
-        const myTickets = status.tickets.filter(t => t.propietario === currentUser.email && t.estado === 'VALIDO' && !t.enVenta);
-        document.getElementById('my-tickets-list').innerHTML = myTickets.length ? myTickets.map(t => `
-          <div class="card-soft p-3 space-y-2">
-            <p class="font-semibold text-sm accent-green">${t.evento}</p>
-            <p class="text-[11px] font-mono break-all text-muted">Código: ${t.ticketId}</p>
-            <div class="flex gap-2">
-              <button onclick="transferirTicket('${t.ticketId}')" class="btn-ghost text-xs px-2.5 py-1.5 rounded-lg">Transferir</button>
-              <button onclick="revenderTicket('${t.ticketId}')" class="text-xs px-2.5 py-1.5 rounded-lg" style="background:var(--gold-dim); color:var(--gold); border:1px solid rgba(240,180,41,.3)">Revender</button>
-            </div>
-          </div>
-        `).join('') : '<p class="text-xs text-muted">No tienes entradas activas todavía.</p>';
+        $('blockchain-blocks').innerHTML = status.chain
+          .slice()
+          .reverse()
+          .map(blockHTML)
+          .join('');
 
-        const marketTickets = status.tickets.filter(t => t.enVenta && t.estado === 'VALIDO' && t.propietario !== currentUser.email);
-        document.getElementById('market-list').innerHTML = marketTickets.length ? marketTickets.map(t => `
-          <div class="card-soft p-3 flex justify-between items-center gap-3">
-            <div>
-              <p class="font-semibold text-sm accent-violet">${t.evento}</p>
-              <p class="text-xs text-muted">Vendedor: ${t.propietario}</p>
-              <p class="text-sm font-semibold mt-1">$${formatCOP(t.precio)} COP</p>
-            </div>
-            <button onclick="comprarReventa('${t.ticketId}')" class="text-xs font-semibold px-3 py-2 rounded-lg" style="background:var(--violet-dim); color:var(--violet); border:1px solid rgba(143,124,245,.35)">
-              Comprar
-            </button>
-          </div>
-        `).join('') : '<p class="text-xs text-muted">No hay entradas en reventa por ahora.</p>';
-      } catch (e) {
-        console.error("Error cargando los datos del backend:", e);
+      } catch (error) {
+        $('bc-status-summary').textContent =
+          '❌ Error conectando con el servidor.';
       }
     }
 
-    async function comprarTicket(eventoId) {
-      if (!currentUser) {
-        pendingPurchaseEventId = eventoId;
-        openLoginModal();
-        return;
-      }
-      await fetch(`${API}/tickets/buy`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ eventoId, email: currentUser.email })
-      });
-      refresh();
-    }
 
-    async function transferirTicket(ticketId) {
-      const nuevoPropietario = prompt('Correo del destinatario:');
-      if (!nuevoPropietario) return;
-      const res = await fetch(`${API}/tickets/transfer`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ ticketId, nuevoPropietario, remitente: currentUser.email })
-      });
-      const data = await res.json();
-      if (!res.ok) alert(data.error);
-      refresh();
-    }
+    // =====================================================
+    // 11. INICIO
+    // =====================================================
 
-    async function revenderTicket(ticketId) {
-      const resStatus = await fetch(`${API}/chain-status`);
-      const status = await resStatus.json();
-      const ticket = status.tickets.find(t => t.ticketId === ticketId);
-      if (!ticket) return;
-
-      const RECARGO_MAXIMO_COP = 10000;
-      const precioMaximo = ticket.precio + RECARGO_MAXIMO_COP;
-      const precio = prompt(
-        `Precio de reventa en COP (máximo $${formatCOP(precioMaximo)} COP = original $${formatCOP(ticket.precio)} COP + $${formatCOP(RECARGO_MAXIMO_COP)} COP):`
-      );
-      if (!precio) return;
-
-      const precioNumerico = parseFloat(precio);
-      if (isNaN(precioNumerico) || precioNumerico > precioMaximo) {
-        alert(`El precio no puede superar $${formatCOP(precioMaximo)} COP`);
-        return;
-      }
-
-      const res = await fetch(`${API}/tickets/resell`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ ticketId, precio: precioNumerico, propietario: currentUser.email })
-      });
-      const data = await res.json();
-      if (!res.ok) alert(data.error);
-      refresh();
-    }
-
-    async function comprarReventa(ticketId) {
-      if (!currentUser) { openLoginModal(); return; }
-      const res = await fetch(`${API}/tickets/buy-resell`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ ticketId, comprador: currentUser.email })
-      });
-      const data = await res.json();
-      alert(res.ok ? data.message : data.error);
-      refresh();
-    }
-
-    async function validarTicket(e) {
-      e.preventDefault();
-      const hash = document.getElementById('val-hash').value;
-      const email = document.getElementById('val-email').value;
-      const bio = document.getElementById('val-bio').value;
-
-      const res = await fetch(`${API}/tickets/validate`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ hash, email, bio, adminEmail: currentUser.email })
-      });
-      const data = await res.json();
-
-      const resDiv = document.getElementById('val-result');
-      resDiv.classList.remove('hidden');
-      resDiv.style.background = data.access ? 'rgba(62,207,142,.12)' : 'rgba(242,104,95,.12)';
-      resDiv.style.color = data.access ? 'var(--green)' : 'var(--red)';
-      resDiv.style.border = `1px solid ${data.access ? 'rgba(62,207,142,.3)' : 'rgba(242,104,95,.3)'}`;
-      resDiv.textContent = data.message;
-      refresh();
-    }
-
-    // Inicialización al cargar la página
-    if (currentUser) {
+    if (state.currentUser) {
       onLoginSuccess();
     } else {
       refresh();
     }
   </script>
+
 </body>
+
 </html>

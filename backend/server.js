@@ -1,65 +1,138 @@
+'use strict';
+
 const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
 const Database = require('better-sqlite3');
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+// =====================================================
+// 1. CONFIGURACIÓN
+// =====================================================
 
-// --- INICIALIZACIÓN DE LA BASE DE DATOS ---
-const db = new Database('database.db');
+const CONFIG = {
+  PORT: 3000,
+  DB_FILE: 'database.db',
 
-// Crear tablas si no existen
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    email TEXT UNIQUE NOT NULL,
-    pass TEXT NOT NULL,
-    bio TEXT,
-    isAdmin INTEGER DEFAULT 0
-  );
+  // Comprador A puede publicar una entrada en reventa
+  // hasta un recargo máximo de $10.000 COP sobre el precio original.
+  MAX_RESALE_EXTRA: 10000,
 
-  CREATE TABLE IF NOT EXISTS eventos (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    nombre TEXT NOT NULL,
-    fecha TEXT NOT NULL,
-    lugar TEXT NOT NULL,
-    precio REAL NOT NULL,
-    aforo INTEGER NOT NULL
-  );
+  // Dificultad de minado (cantidad de ceros iniciales del hash)
+  BLOCKCHAIN_DIFFICULTY: 2,
 
-  CREATE TABLE IF NOT EXISTS blockchain (
-    idx INTEGER PRIMARY KEY,
-    timestamp INTEGER NOT NULL,
-    transactions TEXT NOT NULL,
-    previousHash TEXT NOT NULL,
-    nonce INTEGER NOT NULL,
-    hash TEXT NOT NULL
-  );
+  // Máximo de cortesías por solicitud
+  MAX_COURTESY_QTY: 100,
 
-  CREATE TABLE IF NOT EXISTS tickets (
-    ticketId TEXT PRIMARY KEY,
-    eventoId INTEGER NOT NULL,
-    evento TEXT NOT NULL,
-    propietario TEXT NOT NULL,
-    precio REAL NOT NULL,
-    estado TEXT NOT NULL,
-    enVenta INTEGER DEFAULT 0
-  );
-`);
+  // Evento de ejemplo que se crea si la base está vacía
+  SEED_EVENT: {
+    nombre: 'Concierto Rock Fest',
+    fecha: '20 Oct, 2026',
+    lugar: 'Estadio El Campín',
+    precio: 150000,
+    aforo: 500
+  }
+};
 
-// Insertar evento inicial por defecto si la tabla está vacía
-const totalEventos = db.prepare('SELECT COUNT(*) as count FROM eventos').get();
-if (totalEventos.count === 0) {
+const TICKET_STATE = {
+  VALID: 'VALIDO',
+  USED: 'USADO'
+};
+
+
+// =====================================================
+// 2. BASE DE DATOS (conexión, esquema, migración, seed)
+// =====================================================
+
+const db = new Database(CONFIG.DB_FILE);
+
+db.pragma('foreign_keys = ON');
+db.pragma('journal_mode = WAL');
+
+function createSchema() {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      email TEXT UNIQUE NOT NULL,
+      pass TEXT NOT NULL,
+      bio TEXT,
+      isAdmin INTEGER DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS eventos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nombre TEXT NOT NULL,
+      fecha TEXT NOT NULL,
+      lugar TEXT NOT NULL,
+      precio REAL NOT NULL,
+      aforo INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS blockchain (
+      idx INTEGER PRIMARY KEY,
+      timestamp INTEGER NOT NULL,
+      transactions TEXT NOT NULL,
+      previousHash TEXT NOT NULL,
+      nonce INTEGER NOT NULL,
+      hash TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS tickets (
+      ticketId TEXT PRIMARY KEY,
+      eventoId INTEGER NOT NULL,
+      evento TEXT NOT NULL,
+      propietario TEXT NOT NULL,
+      precio REAL NOT NULL,
+      precioOriginal REAL NOT NULL DEFAULT 0,
+      estado TEXT NOT NULL,
+      enVenta INTEGER DEFAULT 0
+    );
+  `);
+}
+
+function addColumnIfMissing(table, column, definition) {
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all();
+  const exists = columns.some(c => c.name === column);
+
+  if (!exists) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+
+// Migración para bases de datos antiguas
+function migrateSchema() {
+  addColumnIfMissing('tickets', 'precioOriginal', 'REAL NOT NULL DEFAULT 0');
+
   db.prepare(`
-    INSERT INTO eventos (nombre, fecha, lugar, precio, aforo) 
-    VALUES ('Concierto Rock Fest', '20 Oct, 2026', 'Estadio El Campín', 150000, 500)
+    UPDATE tickets
+    SET precioOriginal = precio
+    WHERE precioOriginal = 0
+    AND precio > 0
   `).run();
 }
 
-// --- ESTRUCTURA DE BLOCKCHAIN CON PERSISTENCIA ---
+function seedInitialEvent() {
+  const { count } = db.prepare('SELECT COUNT(*) AS count FROM eventos').get();
+
+  if (count === 0) {
+    const e = CONFIG.SEED_EVENT;
+
+    db.prepare(`
+      INSERT INTO eventos (nombre, fecha, lugar, precio, aforo)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(e.nombre, e.fecha, e.lugar, e.precio, e.aforo);
+  }
+}
+
+createSchema();
+migrateSchema();
+seedInitialEvent();
+
+
+// =====================================================
+// 3. BLOCKCHAIN
+// =====================================================
+
 class Block {
   constructor(index, timestamp, transactions, previousHash = '', nonce = 0, hash = '') {
     this.index = index;
@@ -73,12 +146,20 @@ class Block {
   calculateHash() {
     return crypto
       .createHash('sha256')
-      .update(this.index + this.previousHash + this.timestamp + JSON.stringify(this.transactions) + this.nonce)
+      .update(
+        String(this.index) +
+        this.previousHash +
+        String(this.timestamp) +
+        JSON.stringify(this.transactions) +
+        String(this.nonce)
+      )
       .digest('hex');
   }
 
   mineBlock(difficulty) {
-    while (this.hash.substring(0, difficulty) !== Array(difficulty + 1).join("0")) {
+    const target = '0'.repeat(difficulty);
+
+    while (!this.hash.startsWith(target)) {
       this.nonce++;
       this.hash = this.calculateHash();
     }
@@ -86,223 +167,916 @@ class Block {
 }
 
 class PersistentBlockchain {
-  constructor() {
-    this.difficulty = 2;
+  constructor(difficulty) {
+    this.difficulty = difficulty;
     this.initGenesisBlock();
   }
 
   initGenesisBlock() {
     const genesis = db.prepare('SELECT * FROM blockchain WHERE idx = 0').get();
-    if (!genesis) {
-      const genesisBlock = new Block(0, Date.now(), [{ info: "Génesis TicketChain" }], "0");
-      genesisBlock.mineBlock(this.difficulty);
-      this.saveBlock(genesisBlock);
-    }
+
+    if (genesis) return;
+
+    const genesisBlock = new Block(
+      0,
+      Date.now(),
+      [{ tipo: 'GENESIS', info: 'Génesis TicketChain' }],
+      '0'
+    );
+
+    genesisBlock.mineBlock(this.difficulty);
+    this.saveBlock(genesisBlock);
   }
 
   getLatestBlock() {
-    const row = db.prepare('SELECT * FROM blockchain ORDER BY idx DESC LIMIT 1').get();
-    return new Block(row.idx, row.timestamp, JSON.parse(row.transactions), row.previousHash, row.nonce, row.hash);
+    const row = db
+      .prepare('SELECT * FROM blockchain ORDER BY idx DESC LIMIT 1')
+      .get();
+
+    return new Block(
+      row.idx,
+      row.timestamp,
+      JSON.parse(row.transactions),
+      row.previousHash,
+      row.nonce,
+      row.hash
+    );
   }
 
   saveBlock(block) {
     db.prepare(`
-      INSERT INTO blockchain (idx, timestamp, transactions, previousHash, nonce, hash)
+      INSERT INTO blockchain
+      (idx, timestamp, transactions, previousHash, nonce, hash)
       VALUES (?, ?, ?, ?, ?, ?)
-    `).run(block.index, block.timestamp, JSON.stringify(block.transactions), block.previousHash, block.nonce, block.hash);
+    `).run(
+      block.index,
+      block.timestamp,
+      JSON.stringify(block.transactions),
+      block.previousHash,
+      block.nonce,
+      block.hash
+    );
   }
 
   addBlock(transactions) {
     const latestBlock = this.getLatestBlock();
-    const newBlock = new Block(latestBlock.index + 1, Date.now(), transactions, latestBlock.hash);
+
+    const newBlock = new Block(
+      latestBlock.index + 1,
+      Date.now(),
+      transactions,
+      latestBlock.hash
+    );
+
     newBlock.mineBlock(this.difficulty);
     this.saveBlock(newBlock);
+
+    return newBlock;
   }
 
   getChain() {
-    const rows = db.prepare('SELECT * FROM blockchain ORDER BY idx ASC').all();
-    return rows.map(r => ({
-      index: r.idx,
-      timestamp: r.timestamp,
-      transactions: JSON.parse(r.transactions),
-      previousHash: r.previousHash,
-      nonce: r.nonce,
-      hash: r.hash
+    const rows = db
+      .prepare('SELECT * FROM blockchain ORDER BY idx ASC')
+      .all();
+
+    return rows.map(row => ({
+      index: row.idx,
+      timestamp: row.timestamp,
+      transactions: JSON.parse(row.transactions),
+      previousHash: row.previousHash,
+      nonce: row.nonce,
+      hash: row.hash
     }));
   }
 
   isChainValid() {
     const chain = this.getChain();
+
     for (let i = 1; i < chain.length; i++) {
-      const current = new Block(chain[i].index, chain[i].timestamp, chain[i].transactions, chain[i].previousHash, chain[i].nonce, chain[i].hash);
+      const data = chain[i];
       const previous = chain[i - 1];
+
+      const current = new Block(
+        data.index,
+        data.timestamp,
+        data.transactions,
+        data.previousHash,
+        data.nonce,
+        data.hash
+      );
 
       if (current.hash !== current.calculateHash()) return false;
       if (current.previousHash !== previous.hash) return false;
     }
+
     return true;
   }
 }
 
-const chainInstance = new PersistentBlockchain();
+const chainInstance = new PersistentBlockchain(CONFIG.BLOCKCHAIN_DIFFICULTY);
 
-// --- RUTAS API ---
 
-// 1. Registro de usuario (persistente)
-app.post('/api/register', (req, res) => {
-  const { name, email, pass, bio } = req.body;
+// =====================================================
+// 4. UTILIDADES GENERALES
+// =====================================================
 
-  const existingUser = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
-  if (existingUser) {
-    return res.status(400).json({ error: 'El usuario ya está registrado' });
+function normalizeEmail(email) {
+  return String(email || '').trim().toLowerCase();
+}
+
+function toText(value) {
+  return String(value || '').trim();
+}
+
+function sendError(res, status, error) {
+  return res.status(status).json({ error });
+}
+
+function formatCOP(value) {
+  return value.toLocaleString('es-CO');
+}
+
+
+// =====================================================
+// 5. REPOSITORIOS (acceso a datos)
+// =====================================================
+
+const userRepo = {
+  findByEmail(email) {
+    return db
+      .prepare(`
+        SELECT id, name, email, bio, isAdmin
+        FROM users
+        WHERE lower(email) = lower(?)
+      `)
+      .get(email);
+  },
+
+  findByCredentials(email, pass) {
+    return db
+      .prepare(`
+        SELECT id, name, email, bio, isAdmin
+        FROM users
+        WHERE lower(email) = lower(?)
+          AND pass = ?
+      `)
+      .get(email, pass);
+  },
+
+  create({ name, email, pass, bio, isAdmin }) {
+    db.prepare(`
+      INSERT INTO users (name, email, pass, bio, isAdmin)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(name, email, pass, bio, isAdmin);
   }
+};
 
-  const isAdmin = email.toLowerCase().includes('admin') ? 1 : 0;
-  
-  db.prepare(`
-    INSERT INTO users (name, email, pass, bio, isAdmin) 
-    VALUES (?, ?, ?, ?, ?)
-  `).run(name, email, pass, bio || 'bio_default', isAdmin);
+const eventRepo = {
+  findById(id) {
+    return db.prepare('SELECT * FROM eventos WHERE id = ?').get(id);
+  },
 
-  res.json({ message: 'Usuario registrado correctamente' });
-});
+  listIdsDesc() {
+    return db.prepare('SELECT * FROM eventos ORDER BY id DESC').all();
+  },
 
-// 2. Inicio de sesión (persistente)
-app.post('/api/login', (req, res) => {
-  const { email, pass } = req.body;
-  const user = db.prepare('SELECT id, name, email, bio, isAdmin FROM users WHERE email = ? AND pass = ?').get(email, pass);
+  create({ nombre, fecha, lugar, precio, aforo }) {
+    const info = db
+      .prepare(`
+        INSERT INTO eventos (nombre, fecha, lugar, precio, aforo)
+        VALUES (?, ?, ?, ?, ?)
+      `)
+      .run(nombre, fecha, lugar, precio, aforo);
+
+    return Number(info.lastInsertRowid);
+  },
+
+  // Evento + aforo vendido y disponible
+  findWithStock(id) {
+    const evento = this.findById(id);
+    if (!evento) return null;
+
+    const { vendidas } = db
+      .prepare('SELECT COUNT(*) AS vendidas FROM tickets WHERE eventoId = ?')
+      .get(id);
+
+    return {
+      ...evento,
+      vendidas,
+      disponibles: Math.max(evento.aforo - vendidas, 0)
+    };
+  }
+};
+
+const TICKET_PUBLIC_FIELDS = `
+  ticketId, eventoId, evento, propietario,
+  precio, precioOriginal, estado, enVenta
+`;
+
+const ticketRepo = {
+  exists(ticketId) {
+    return Boolean(
+      db.prepare('SELECT 1 FROM tickets WHERE ticketId = ?').get(ticketId)
+    );
+  },
+
+  findById(ticketId) {
+    return db
+      .prepare('SELECT * FROM tickets WHERE ticketId = ?')
+      .get(ticketId);
+  },
+
+  findByIdAndOwner(ticketId, owner) {
+    return db
+      .prepare(`
+        SELECT *
+        FROM tickets
+        WHERE ticketId = ?
+          AND lower(propietario) = lower(?)
+      `)
+      .get(ticketId, owner);
+  },
+
+  findOnResale(ticketId) {
+    return db
+      .prepare('SELECT * FROM tickets WHERE ticketId = ? AND enVenta = 1')
+      .get(ticketId);
+  },
+
+  countByEvent(eventoId) {
+    return db
+      .prepare('SELECT COUNT(*) AS count FROM tickets WHERE eventoId = ?')
+      .get(eventoId).count;
+  },
+
+  insert({ ticketId, evento, propietario, precio }) {
+    db.prepare(`
+      INSERT INTO tickets
+      (ticketId, eventoId, evento, propietario, precio, precioOriginal, estado, enVenta)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+    `).run(
+      ticketId,
+      evento.id,
+      evento.nombre,
+      propietario,
+      precio,
+      precio,
+      TICKET_STATE.VALID
+    );
+  },
+
+  publishForResale(ticketId, precio) {
+    db.prepare(`
+      UPDATE tickets
+      SET enVenta = 1, precio = ?
+      WHERE ticketId = ?
+    `).run(precio, ticketId);
+  },
+
+  completeResale(ticketId, newOwner) {
+    db.prepare(`
+      UPDATE tickets
+      SET propietario = ?, enVenta = 0
+      WHERE ticketId = ?
+    `).run(newOwner, ticketId);
+  },
+
+  transfer(ticketId, newOwner) {
+    db.prepare(`
+      UPDATE tickets
+      SET propietario = ?
+      WHERE ticketId = ?
+    `).run(newOwner, ticketId);
+  },
+
+  markAsUsed(ticketId) {
+    db.prepare(`
+      UPDATE tickets
+      SET estado = ?, enVenta = 0
+      WHERE ticketId = ?
+    `).run(TICKET_STATE.USED, ticketId);
+  },
+
+  listAll() {
+    return db
+      .prepare(`SELECT ${TICKET_PUBLIC_FIELDS} FROM tickets ORDER BY rowid DESC`)
+      .all()
+      .map(serializeTicket);
+  },
+
+  findPublic(ticketId) {
+    const ticket = db
+      .prepare(`SELECT ${TICKET_PUBLIC_FIELDS} FROM tickets WHERE ticketId = ?`)
+      .get(ticketId);
+
+    return ticket ? serializeTicket(ticket) : null;
+  }
+};
+
+function serializeTicket(ticket) {
+  return { ...ticket, enVenta: Boolean(ticket.enVenta) };
+}
+
+function generateTicketId() {
+  let id;
+
+  do {
+    id = 'TCK-' + crypto.randomBytes(5).toString('hex').toUpperCase();
+  } while (ticketRepo.exists(id));
+
+  return id;
+}
+
+
+// =====================================================
+// 6. AUTENTICACIÓN / AUTORIZACIÓN
+// =====================================================
+
+// Devuelve el usuario o responde 401 y devuelve null
+function requireUser(email, res) {
+  const user = userRepo.findByEmail(email);
 
   if (!user) {
-    return res.status(401).json({ error: 'Credenciales inválidas' });
+    sendError(res, 401, 'Usuario no autenticado o no existe');
+    return null;
   }
 
-  res.json({ 
-    user: {
-      ...user,
-      isAdmin: Boolean(user.isAdmin)
-    } 
+  return user;
+}
+
+// Devuelve el usuario admin o responde 401/403 y devuelve null
+function requireAdmin(email, res) {
+  const user = requireUser(email, res);
+  if (!user) return null;
+
+  if (!Boolean(user.isAdmin)) {
+    sendError(res, 403, 'Esta operación requiere permisos de administrador');
+    return null;
+  }
+
+  return user;
+}
+
+
+// =====================================================
+// 7. HANDLERS: USUARIOS
+// =====================================================
+
+function register(req, res) {
+  const name = toText(req.body.name);
+  const email = normalizeEmail(req.body.email);
+  const pass = String(req.body.pass || '');
+  const bio = toText(req.body.bio);
+
+  if (!name || !email || !pass) {
+    return sendError(res, 400, 'Nombre, correo y contraseña son obligatorios');
+  }
+
+  if (userRepo.findByEmail(email)) {
+    return sendError(res, 400, 'El usuario ya está registrado');
+  }
+
+  // Para la demostración: cualquier correo que contenga "admin" es administrador.
+  const isAdmin = email.includes('admin') ? 1 : 0;
+
+  userRepo.create({
+    name,
+    email,
+    pass,
+    bio: bio || 'bio_default',
+    isAdmin
   });
-});
 
-// 3. Obtener eventos
-app.get('/api/eventos', (req, res) => {
-  const eventos = db.prepare('SELECT * FROM eventos').all();
+  res.json({
+    message: isAdmin
+      ? 'Usuario administrador registrado correctamente'
+      : 'Usuario registrado correctamente'
+  });
+}
+
+function login(req, res) {
+  const email = normalizeEmail(req.body.email);
+  const pass = String(req.body.pass || '');
+
+  const user = userRepo.findByCredentials(email, pass);
+
+  if (!user) {
+    return sendError(res, 401, 'Credenciales inválidas');
+  }
+
+  res.json({
+    user: { ...user, isAdmin: Boolean(user.isAdmin) }
+  });
+}
+
+
+// =====================================================
+// 8. HANDLERS: EVENTOS
+// =====================================================
+
+function listEvents(req, res) {
+  const eventos = eventRepo
+    .listIdsDesc()
+    .map(evento => eventRepo.findWithStock(evento.id));
+
   res.json(eventos);
-});
+}
 
-// 4. Crear evento
-app.post('/api/eventos', (req, res) => {
+function createEvent(req, res) {
   const { nombre, fecha, lugar, precio, aforo, adminEmail } = req.body;
 
-  if (!nombre || !fecha || !lugar || precio === undefined || !aforo) {
-    return res.status(400).json({ error: 'Todos los campos son obligatorios' });
+  if (!requireAdmin(adminEmail, res)) return;
+
+  const cleanName = toText(nombre);
+  const cleanDate = toText(fecha);
+  const cleanPlace = toText(lugar);
+  const price = Number(precio);
+  const capacity = Number(aforo);
+
+  if (
+    !cleanName ||
+    !cleanDate ||
+    !cleanPlace ||
+    !Number.isFinite(price) ||
+    price < 0 ||
+    !Number.isInteger(capacity) ||
+    capacity <= 0
+  ) {
+    return sendError(
+      res,
+      400,
+      'Nombre, fecha, lugar, precio y aforo deben ser válidos'
+    );
   }
 
-  const info = db.prepare(`
-    INSERT INTO eventos (nombre, fecha, lugar, precio, aforo) 
-    VALUES (?, ?, ?, ?, ?)
-  `).run(nombre, fecha, lugar, parseFloat(precio), parseInt(aforo));
+  const eventoId = eventRepo.create({
+    nombre: cleanName,
+    fecha: cleanDate,
+    lugar: cleanPlace,
+    precio: price,
+    aforo: capacity
+  });
 
-  const nuevoEvento = { id: info.lastInsertRowid, nombre, fecha, lugar, precio: parseFloat(precio), aforo: parseInt(aforo) };
-  
+  const evento = eventRepo.findWithStock(eventoId);
 
   chainInstance.addBlock([{
     tipo: 'CREACION_EVENTO',
-    eventoId: nuevoEvento.id,
-    nombre: nuevoEvento.nombre,
-    creadoPor: adminEmail || 'Admin'
+    eventoId: evento.id,
+    nombre: evento.nombre,
+    fecha: evento.fecha,
+    lugar: evento.lugar,
+    precio: evento.precio,
+    aforo: evento.aforo,
+    creadoPor: normalizeEmail(adminEmail)
   }]);
 
-  res.json({ message: 'Evento creado con éxito', evento: nuevoEvento });
-});
+  res.json({ message: 'Evento creado con éxito', evento });
+}
 
-// 5. Comprar Ticket
-app.post('/api/tickets/buy', (req, res) => {
-  const { eventoId, email } = req.body;
-  const evento = db.prepare('SELECT * FROM eventos WHERE id = ?').get(eventoId);
 
-  if (!evento) return res.status(404).json({ error: 'Evento no encontrado' });
+// =====================================================
+// 9. HANDLERS: TICKETS - EMISIÓN Y COMPRA
+// =====================================================
 
-  const ticketId = 'TICK-' + crypto.randomBytes(4).toString('hex').toUpperCase();
+function issueCourtesies(req, res) {
+  const { eventoId, destinatario, cantidad, adminEmail } = req.body;
 
-  db.prepare(`
-    INSERT INTO tickets (ticketId, eventoId, evento, propietario, precio, estado, enVenta)
-    VALUES (?, ?, ?, ?, ?, 'VALIDO', 0)
-  `).run(ticketId, eventoId, evento.nombre, email, evento.precio);
+  if (!requireAdmin(adminEmail, res)) return;
 
-  chainInstance.addBlock([{ tipo: 'COMPRA_DIRECTA', ticketId, comprador: email, evento: evento.nombre }]);
+  const evento = eventRepo.findById(eventoId);
+
+  if (!evento) {
+    return sendError(res, 404, 'Evento no encontrado');
+  }
+
+  const recipient = normalizeEmail(destinatario);
+
+  if (!userRepo.findByEmail(recipient)) {
+    return sendError(res, 404, 'El destinatario debe estar registrado');
+  }
+
+  const qty = Number(cantidad);
+
+  if (!Number.isInteger(qty) || qty <= 0 || qty > CONFIG.MAX_COURTESY_QTY) {
+    return sendError(
+      res,
+      400,
+      `La cantidad de cortesías debe estar entre 1 y ${CONFIG.MAX_COURTESY_QTY}`
+    );
+  }
+
+  const stock = eventRepo.findWithStock(eventoId);
+
+  if (qty > stock.disponibles) {
+    return sendError(
+      res,
+      400,
+      `No hay aforo suficiente. Disponibles: ${stock.disponibles}`
+    );
+  }
+
+  const tickets = [];
+
+  db.transaction(() => {
+    for (let i = 0; i < qty; i++) {
+      const ticketId = generateTicketId();
+
+      ticketRepo.insert({
+        ticketId,
+        evento,
+        propietario: recipient,
+        precio: 0
+      });
+
+      tickets.push(ticketId);
+    }
+  })();
+
+  chainInstance.addBlock([{
+    tipo: 'EMISION_CORTESIAS',
+    eventoId: evento.id,
+    evento: evento.nombre,
+    cantidad: qty,
+    destinatario: recipient,
+    emitidoPor: normalizeEmail(adminEmail),
+    tickets
+  }]);
+
+  res.json({
+    message: `${qty} cortesía(s) emitida(s) correctamente`,
+    tickets
+  });
+}
+
+function buyTicket(req, res) {
+  const eventoId = Number(req.body.eventoId);
+  const email = normalizeEmail(req.body.email);
+
+  if (!requireUser(email, res)) return;
+
+  const evento = eventRepo.findById(eventoId);
+
+  if (!evento) {
+    return sendError(res, 404, 'Evento no encontrado');
+  }
+
+  const ticketId = generateTicketId();
+
+  try {
+    db.transaction(() => {
+      if (ticketRepo.countByEvent(eventoId) >= evento.aforo) {
+        throw new Error('AFORO_COMPLETO');
+      }
+
+      ticketRepo.insert({
+        ticketId,
+        evento,
+        propietario: email,
+        precio: evento.precio
+      });
+    })();
+  } catch (error) {
+    if (error.message === 'AFORO_COMPLETO') {
+      return sendError(res, 409, 'El evento ya alcanzó el aforo máximo');
+    }
+
+    console.error(error);
+    return sendError(res, 500, 'No fue posible generar el ticket');
+  }
+
+  chainInstance.addBlock([{
+    tipo: 'COMPRA_DIRECTA',
+    ticketId,
+    comprador: email,
+    eventoId: evento.id,
+    evento: evento.nombre,
+    precio: evento.precio
+  }]);
 
   res.json({ message: 'Ticket comprado con éxito', ticketId });
-});
+}
 
-// 6. Revender Ticket
-app.post('/api/tickets/resell', (req, res) => {
-  const { ticketId, precio, propietario } = req.body;
-  const ticket = db.prepare('SELECT * FROM tickets WHERE ticketId = ? AND propietario = ?').get(ticketId, propietario);
 
-  if (!ticket) return res.status(404).json({ error: 'Ticket no encontrado o no te pertenece' });
+// =====================================================
+// 10. HANDLERS: TICKETS - REVENTA Y TRANSFERENCIA
+// =====================================================
 
-  db.prepare('UPDATE tickets SET enVenta = 1, precio = ? WHERE ticketId = ?').run(parseFloat(precio), ticketId);
+// Comprador A publica en reventa
+function resellTicket(req, res) {
+  const ticketId = toText(req.body.ticketId);
+  const propietario = normalizeEmail(req.body.propietario);
+  const precio = Number(req.body.precio);
 
-  chainInstance.addBlock([{ tipo: 'PUBLICAR_REVENTA', ticketId, nuevoPrecio: precio, vendedor: propietario }]);
-  res.json({ message: 'Ticket puesto en reventa' });
-});
+  if (!requireUser(propietario, res)) return;
 
-// 7. Comprar Reventa
-app.post('/api/tickets/buy-resell', (req, res) => {
-  const { ticketId, comprador } = req.body;
-  const ticket = db.prepare('SELECT * FROM tickets WHERE ticketId = ? AND enVenta = 1').get(ticketId);
+  const ticket = ticketRepo.findByIdAndOwner(ticketId, propietario);
 
-  if (!ticket) return res.status(404).json({ error: 'Ticket no disponible para reventa' });
+  if (!ticket) {
+    return sendError(res, 404, 'Ticket no encontrado o no te pertenece');
+  }
 
-  db.prepare('UPDATE tickets SET propietario = ?, enVenta = 0 WHERE ticketId = ?').run(comprador, ticketId);
+  if (ticket.estado !== TICKET_STATE.VALID) {
+    return sendError(
+      res,
+      400,
+      'Solo se pueden revender entradas válidas y no usadas'
+    );
+  }
 
-  chainInstance.addBlock([{ tipo: 'COMPRA_REVENTA', ticketId, de: ticket.propietario, para: comprador, precio: ticket.precio }]);
-  res.json({ message: 'Reventa completada con éxito' });
-});
+  if (ticket.enVenta) {
+    return sendError(res, 400, 'El ticket ya está publicado en reventa');
+  }
 
-// 8. Transferir Ticket
-app.post('/api/tickets/transfer', (req, res) => {
-  const { ticketId, nuevoPropietario, remitente } = req.body;
-  const ticket = db.prepare('SELECT * FROM tickets WHERE ticketId = ? AND propietario = ?').get(ticketId, remitente);
+  // Las cortesías no pueden revenderse.
+  if (ticket.precioOriginal <= 0) {
+    return sendError(
+      res,
+      400,
+      'Las entradas de cortesía no se pueden revender'
+    );
+  }
 
-  if (!ticket) return res.status(404).json({ error: 'Ticket no encontrado' });
+  const maxPrice = ticket.precioOriginal + CONFIG.MAX_RESALE_EXTRA;
 
-  db.prepare('UPDATE tickets SET propietario = ? WHERE ticketId = ?').run(nuevoPropietario, ticketId);
+  if (
+    !Number.isFinite(precio) ||
+    precio < ticket.precioOriginal ||
+    precio > maxPrice
+  ) {
+    return sendError(
+      res,
+      400,
+      `El precio debe estar entre $${formatCOP(ticket.precioOriginal)} y $${formatCOP(maxPrice)} COP`
+    );
+  }
 
-  chainInstance.addBlock([{ tipo: 'TRANSFERENCIA', ticketId, de: remitente, para: nuevoPropietario }]);
-  res.json({ message: 'Ticket transferido correctamente' });
-});
+  ticketRepo.publishForResale(ticketId, precio);
 
-// 9. Validar Ticket en Puerta
-app.post('/api/tickets/validate', (req, res) => {
-  const { hash, email } = req.body;
-  const ticket = db.prepare('SELECT * FROM tickets WHERE ticketId = ?').get(hash);
+  // El ticket desaparece de "Mis entradas" y aparece en el mercado.
+  chainInstance.addBlock([{
+    tipo: 'PUBLICAR_REVENTA',
+    ticketId,
+    evento: ticket.evento,
+    vendedor: propietario,
+    precioOriginal: ticket.precioOriginal,
+    precioReventa: precio,
+    maximoPermitido: maxPrice
+  }]);
 
-  if (!ticket) return res.status(404).json({ access: false, message: 'Entrada inválida o no existente' });
-  if (ticket.propietario !== email) return res.status(403).json({ access: false, message: 'La entrada no pertenece a este correo' });
-  if (ticket.estado === 'USADO') return res.status(400).json({ access: false, message: 'Esta entrada ya fue utilizada' });
+  res.json({
+    message: 'Ticket publicado en el mercado',
+    ticketId,
+    precioReventa: precio,
+    maximoPermitido: maxPrice
+  });
+}
 
-  db.prepare("UPDATE tickets SET estado = 'USADO' WHERE ticketId = ?").run(hash);
+// Comprador B compra en reventa (A -> B)
+function buyResoldTicket(req, res) {
+  const ticketId = toText(req.body.ticketId);
+  const comprador = normalizeEmail(req.body.comprador);
 
-  chainInstance.addBlock([{ tipo: 'INGRESO_EVENTO', ticketId: hash, asistente: email, fecha: new Date().toISOString() }]);
-  res.json({ access: true, message: 'Acceso concedido. Entrada válida.' });
-});
+  if (!requireUser(comprador, res)) return;
 
-// 10. Estado Blockchain y Tickets
-app.get('/api/chain-status', (req, res) => {
+  const ticket = ticketRepo.findOnResale(ticketId);
+
+  if (!ticket) {
+    return sendError(res, 404, 'Ticket no disponible para reventa');
+  }
+
+  if (ticket.estado !== TICKET_STATE.VALID) {
+    return sendError(res, 400, 'El ticket no está válido para compra');
+  }
+
+  if (normalizeEmail(ticket.propietario) === comprador) {
+    return sendError(res, 400, 'No puedes comprar tu propio ticket');
+  }
+
+  const vendedor = ticket.propietario;
+
+  ticketRepo.completeResale(ticketId, comprador);
+
+  chainInstance.addBlock([{
+    tipo: 'COMPRA_REVENTA',
+    ticketId,
+    evento: ticket.evento,
+    de: vendedor,
+    para: comprador,
+    precio: ticket.precio
+  }]);
+
+  // Cambio explícito de dueño A -> B.
+  chainInstance.addBlock([{
+    tipo: 'CAMBIO_DUENO',
+    ticketId,
+    evento: ticket.evento,
+    anterior: vendedor,
+    nuevo: comprador,
+    motivo: 'REVENTA'
+  }]);
+
+  res.json({
+    message: `Compra realizada. El propietario cambió de ${vendedor} a ${comprador}.`
+  });
+}
+
+// Transferencia directa (Comprador A -> Comprador B)
+function transferTicket(req, res) {
+  const ticketId = toText(req.body.ticketId);
+  const remitente = normalizeEmail(req.body.remitente);
+  const nuevoPropietario = normalizeEmail(req.body.nuevoPropietario);
+
+  if (!requireUser(remitente, res)) return;
+
+  if (!nuevoPropietario) {
+    return sendError(
+      res,
+      400,
+      'Debes indicar el correo del nuevo propietario'
+    );
+  }
+
+  if (remitente === nuevoPropietario) {
+    return sendError(
+      res,
+      400,
+      'El nuevo propietario debe ser diferente al actual'
+    );
+  }
+
+  // El comprador B debe existir.
+  if (!userRepo.findByEmail(nuevoPropietario)) {
+    return sendError(res, 404, 'El destinatario no está registrado');
+  }
+
+  const ticket = ticketRepo.findByIdAndOwner(ticketId, remitente);
+
+  if (!ticket) {
+    return sendError(res, 404, 'Ticket no encontrado o no te pertenece');
+  }
+
+  if (ticket.estado !== TICKET_STATE.VALID) {
+    return sendError(
+      res,
+      400,
+      'No se puede transferir una entrada ya utilizada'
+    );
+  }
+
+  if (ticket.enVenta) {
+    return sendError(
+      res,
+      400,
+      'Retira el ticket del mercado antes de transferirlo'
+    );
+  }
+
+  ticketRepo.transfer(ticketId, nuevoPropietario);
+
+  chainInstance.addBlock([{
+    tipo: 'TRANSFERENCIA',
+    ticketId,
+    evento: ticket.evento,
+    de: remitente,
+    para: nuevoPropietario
+  }]);
+
+  chainInstance.addBlock([{
+    tipo: 'CAMBIO_DUENO',
+    ticketId,
+    evento: ticket.evento,
+    anterior: remitente,
+    nuevo: nuevoPropietario,
+    motivo: 'TRANSFERENCIA'
+  }]);
+
+  res.json({
+    message: `Ticket transferido. Nuevo propietario: ${nuevoPropietario}`
+  });
+}
+
+
+// =====================================================
+// 11. HANDLERS: VALIDACIÓN EN PUERTA (VALIDO -> USADO)
+// =====================================================
+
+function validateTicket(req, res) {
+  const hash = toText(req.body.hash);
+  const email = normalizeEmail(req.body.email);
+  const adminEmail = normalizeEmail(req.body.adminEmail);
+
+  if (!requireAdmin(adminEmail, res)) return;
+
+  const deny = (status, message) =>
+    res.status(status).json({ access: false, message });
+
+  const ticket = ticketRepo.findById(hash);
+
+  if (!ticket) {
+    return deny(404, 'Entrada inválida o no existente');
+  }
+
+  if (ticket.propietario !== email) {
+    return deny(403, 'La entrada no pertenece a este correo');
+  }
+
+  if (ticket.estado === TICKET_STATE.USED) {
+    return deny(400, 'Esta entrada ya fue utilizada');
+  }
+
+  if (ticket.estado !== TICKET_STATE.VALID) {
+    return deny(400, 'La entrada no está en estado válido');
+  }
+
+  ticketRepo.markAsUsed(hash);
+
+  chainInstance.addBlock([{
+    tipo: 'INGRESO_EVENTO',
+    ticketId: hash,
+    evento: ticket.evento,
+    asistente: email,
+    fecha: new Date().toISOString(),
+    estadoAnterior: TICKET_STATE.VALID,
+    estadoNuevo: TICKET_STATE.USED
+  }]);
+
+  res.json({
+    access: true,
+    message: 'Acceso concedido. Entrada válida y marcada como USADA.'
+  });
+}
+
+
+// =====================================================
+// 12. HANDLERS: CONSULTAS Y ESTADO
+// =====================================================
+
+function getChainStatus(req, res) {
   const chain = chainInstance.getChain();
-  const tickets = db.prepare('SELECT * FROM tickets').all().map(t => ({ ...t, enVenta: Boolean(t.enVenta) }));
 
   res.json({
     length: chain.length,
     valid: chainInstance.isChainValid(),
     chain,
-    tickets
+    tickets: ticketRepo.listAll()
   });
-});
+}
 
-const PORT = 3000;
-app.listen(PORT, () => {
-  console.log(`Servidor activo en http://localhost:${PORT} (Datos guardados en database.db)`);
+function getTicket(req, res) {
+  const ticket = ticketRepo.findPublic(req.params.ticketId);
+
+  if (!ticket) {
+    return sendError(res, 404, 'Ticket no encontrado');
+  }
+
+  res.json(ticket);
+}
+
+function healthCheck(req, res) {
+  res.json({
+    ok: true,
+    servicio: 'TicketChain',
+    blockchainValida: chainInstance.isChainValid()
+  });
+}
+
+
+// =====================================================
+// 13. APP EXPRESS: MIDDLEWARE Y RUTAS
+// =====================================================
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+// Usuarios
+app.post('/api/register', register);
+app.post('/api/login', login);
+
+// Eventos
+app.get('/api/eventos', listEvents);
+app.post('/api/eventos', createEvent);
+
+// Tickets
+app.post('/api/tickets/courtesy', issueCourtesies);
+app.post('/api/tickets/buy', buyTicket);
+app.post('/api/tickets/resell', resellTicket);
+app.post('/api/tickets/buy-resell', buyResoldTicket);
+app.post('/api/tickets/transfer', transferTicket);
+app.post('/api/tickets/validate', validateTicket);
+app.get('/api/tickets/:ticketId', getTicket);
+
+// Blockchain / sistema
+app.get('/api/chain-status', getChainStatus);
+app.get('/api/health', healthCheck);
+
+
+// =====================================================
+// 14. INICIO DEL SERVIDOR
+// =====================================================
+
+app.listen(CONFIG.PORT, () => {
+  console.log(`Servidor activo en http://localhost:${CONFIG.PORT}`);
+  console.log(`Base de datos: ${CONFIG.DB_FILE}`);
 });
